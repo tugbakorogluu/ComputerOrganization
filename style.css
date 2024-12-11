@@ -1,0 +1,103 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Abhaya Libre', sans-serif; /* New pastel-friendly font */
+    background-color: #cddff4; /* Soft pastel blue background */
+    color: #333; /* Dark blue text */
+}
+
+table {
+    font-family: 'Abhaya Libre', sans-serif; /* New pastel-friendly font */
+    border-collapse: collapse;
+    width: 100%;
+    padding: 20px; /* Increased padding */
+}
+
+table th,
+table td {
+    border: 1px solid #cddff4; /* Soft pastel blue border */
+    padding: 12px; /* Increased padding */
+    text-align: center;
+}
+
+#toolbar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+button {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #6ea2ff; /* Soft pastel blue button */
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+button:hover {
+    background-color: #548bff; /* Darker blue on hover */
+}
+
+#registers {
+    background-color: #e2ecff; /* Light pastel blue background */
+    border: 5px solid #cddff4; /* Soft pastel blue border */
+    box-sizing: border-box;
+    overflow: auto; /* Adding scrollable feature */
+    max-height: 450px; /* Limiting height to enable scrolling */
+}
+
+#edit {
+    background-color: #e2ecff; /* Light pastel blue background */
+    border: 5px solid #cddff4; /* Soft pastel blue border */
+}
+
+#execute {
+    background-color: #e2ecff; /* Light pastel blue background */
+    border: 5px solid #cddff4; /* Soft pastel blue border */
+    display: flex;
+    margin-bottom: 10px;
+}
+
+#instruction-memory {
+    padding: 10px;
+    box-sizing: border-box;
+    border-right: 5px solid #cddff4; /* Soft pastel blue border */
+    overflow: auto;
+    max-height: 450px;
+}
+
+#data-memory {
+    padding: 10px;
+    box-sizing: border-box;
+    border-right: none;
+    max-height: 450px;
+    overflow: auto;
+}
+
+h2 {
+    margin: 10px;
+    font-family: 'Abhaya Libre', sans-serif; /* New pastel-friendly font */
+}
+
+#editor {
+    left: 10px;
+    right: 10px;
+    bottom: 25px;
+    padding: 10px;
+    width: 100%;
+    /* Adjust the width as needed */
+    height: 300px;
+    /* Adjust the height as needed */
+    box-sizing: border-box;
+    border: none;
+    background-color: #bfdcff; /* Light pastel blue background */
+    color: #333; /* Dark blue text */
+    font-family: 'Abhaya Libre', sans-serif; /* New pastel-friendly font */
+    font-size: 16px;
+    resize: none;
+    overflow: auto;
+}
