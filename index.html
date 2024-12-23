@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+
     <title>MIPS SIMULATOR</title>
     <link rel="stylesheet" href="style.css" />
     <link
@@ -35,6 +36,10 @@
           <h2>Edit Code</h2>
           <textarea id="editor"></textarea>
           <button id="run-btn">Run</button>
+          <button id="convertToBin">Convert to Binary</button>
+          <h2>Converted Machine Code</h2>
+          <div id="output"></div>
+         
         </div>
 
         <div id="registers" class="col-4">
@@ -277,5 +282,7 @@
       crossorigin="anonymous"
     ></script>
     <script type="module" src="script.js"></script>
+    <script type="module" src="/js/converter.js"></script>
   </body>
+
 </html>

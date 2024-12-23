@@ -1,6 +1,7 @@
 import { compileToBin, compileToHex } from "./compiler.js";
 
-const assemblyInput = document.getElementById("assemblyInput");
+const editor = document.getElementById("editor");
+
 const convertToBinButton = document.getElementById("convertToBin");
 const convertToHexButton = document.getElementById("convertToHex");
 const outputDiv = document.getElementById("output");
@@ -15,7 +16,7 @@ function displayMachineCode(machineCode) {
 }
 
 convertToBinButton.addEventListener("click", () => {
-  const assemblyCode = assemblyInput.value.split("\n");
+  const assemblyCode = editor.value.split("\n");
   try {
     const machineCode = compileToBin(assemblyCode);
     displayMachineCode(machineCode);
