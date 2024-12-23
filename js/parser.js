@@ -1,7 +1,15 @@
 import * as tokens from './tokens.js';
 
+/*Bu fonksiyon, bir assembly komutunu alır ve onu üç ana kategoriye ayırarak analiz eder:
+R-Tipi komutlar (parseRtype), I-Tipi komutlar (parseItype), J-Tipi komutlar (parseJtype) 
+İlk olarak opcode'u ve argümanları ayırarak bu komutların hangi türde olduğunu belirler. 
+Ardından uygun fonksiyona yönlendirme yapar.
+Eğer komut geçerli bir R-Tipi, I-Tipi veya J-Tipi komutsa, bu fonksiyon komutu döndürür. 
+Aksi takdirde bir hata fırlatır.*/
+
 export function parseInstruction(instruction) {
   const [opcode, ...args] = instruction.trim().split(/\s+/);
+  
 
   const rTypeInstruction = parseRtype(instruction);
   const iTypeInstruction = parseItype(instruction);
@@ -17,6 +25,15 @@ export function parseInstruction(instruction) {
     throw new Error(`Invalid instruction: ${instruction}`);
   }
 }
+
+/* R-Tipi komutları, üç kayıt (register) kullanarak işlem yapar. Örneğin, add, sub, and, or gibi komutlar.
+Bu fonksiyon, farklı R-Tipi komutları tanımak için bir dizi regex kullanır:
+rTypeRegex: Standart R-tipi komutlar için.
+shiftRegex: Shifting (bit kaydırma) komutları için.
+multDiv: Çarpma ve bölme komutları için.
+mfRegex: Move From komutları için (örneğin mfhi veya mflo).
+jumpRegex: Jump komutları için (jr komutu). 
+Bu komutlar uygun regex ile eşleşirse, komutun kategorisini ve bileşenlerini çıkarır ve döndürür. */
 
 function parseRtype(instruction) {
   const rTypeRegex = /^(\w+)\s+\$(\w+),\s*\$(\w+),\s*\$(\w+)$/i;
@@ -51,6 +68,12 @@ function parseRtype(instruction) {
   }
 }
 
+/* Bu fonksiyon, I-Tipi komutlarını tanımak için üç regex kullanır:
+itypeRegex: Genel I-tipi komutlar için.
+loadStoreRegex: Yükleme ve depolama (load/store) komutları için.
+luiRegex: Load Upper Immediate komutu (lui).
+Komutlar uygun regex ile eşleşirse, opcode ve ilgili bileşenler çıkarılır ve döndürülür. */
+
 function parseItype(instruction) {
   const itypeRegex = /^(\w+)\s+\$(\w+),\s*\$(\w+),\s*(-?\d+|0x[\da-fA-F]+|0b[01]+)$/i;
   const loadStoreRegex = /^(\w+)\s+\$(\w+),\s*(-?\d+|0x[\da-fA-F]+|0b[01]+)\((\$\w+)\)$/i;
@@ -74,6 +97,10 @@ function parseItype(instruction) {
   }
 }
 
+/* Bu fonksiyon, J-tipi komutlarını tanımak için sadece bir regex kullanır:
+jTypeRegex: Jump komutları için.
+Regex ile eşleşen komutun opcode ve hedef (target) bilgilerini çıkarır ve döndürür. */
+
 function parseJtype(instruction) {
   const jTypeRegex = /^(\w+)\s+(\d+|0x[\da-fA-F]+|0b[01]+)$/i;
 
@@ -86,3 +113,7 @@ function parseJtype(instruction) {
     return null;
   }
 }
+
+/*Bu parser.js dosyası, MIPS assembly kodlarını analiz ederek her bir komutun tipini (R-Tipi, I-Tipi, J-Tipi) 
+ve bileşenlerini (opcode, registerler, immediate değerler) belirler.Bu analiz, assembly komutlarını makine koduna
+dönüştürmeden önce komutun doğru bir şekilde anlaşılmasını sağlar. */

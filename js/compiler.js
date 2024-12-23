@@ -1,15 +1,19 @@
 import * as parser from './parser.js';
 import * as tokens from './tokens.js';
 
+// Bu fonksiyon, Assembly kodunu onaltılı (hex) makine koduna dönüştürür.
+
 export function compileToHex(assemblyCode) {
   const machineCode = [];
   assemblyCode.forEach(instruction => {
-    const compiledInstruction = compileInstruction(instruction);
-    const hexCode = parseInt(compiledInstruction, 2).toString(16).padStart(8, "0");
+    const compiledInstruction = compileInstruction(instruction); // Bu fonksiyon önce binarye çevirir.
+    const hexCode = parseInt(compiledInstruction, 2).toString(16).padStart(8, "0"); // Burada hexadecimale çevirir.
     machineCode.push(hexCode);
   });
   return machineCode;
 }
+
+// Bu fonksiyon, Assembly kodunu ikili (binary) makine koduna dönüştürür.
 
 export function compileToBin(assemblyCode) {
   const machineCode = [];
@@ -18,6 +22,8 @@ export function compileToBin(assemblyCode) {
   });
   return machineCode;
 }
+
+//Bu fonksiyon, her bir Assembly komutunu alır ve opcode'u analiz ederek uygun R, I veya J tipi komutlara yönlendirir.
 
 function compileInstruction(instruction) {
   const [opcode, ...args] = instruction.trim().split(/\s+/);
@@ -32,6 +38,12 @@ function compileInstruction(instruction) {
     throw new Error(`Unknown instruction: ${instruction}`);
   }
 }
+
+/*R tipi komutlar, üç kayıt (register) kullanarak işlemler yapar ve sabit bir formatla yazılır.
+ Örneğin, add, sub, and, or gibi komutlar.
+ Bu fonksiyon, parser.parseInstruction(instruction) fonksiyonunu çağırarak komutu parçalara ayırır ve 
+ ardından opcode ve funct bilgilerini kullanarak makine kodunu oluşturur.
+ R tipi komutlar için farklı kategorilerde derleme yapılır: Register, Shift, MultDiv, MoveFrom, ve RJump.*/
 
 function compileRTypeInstruction(instruction) {
   const parts = parser.parseInstruction(instruction);
@@ -82,6 +94,12 @@ function compileRTypeInstruction(instruction) {
 // In here we are using a helper function parser to parse instractions
 // Then we return a dictionary in tokens and the index is opcode itself and we get the opcode
 
+/*I tipi komutlar, iki kayıt ve bir sabit değeri (immediate) kullanarak işlemler yapar. 
+Örneğin, addi, andi, lw, sw gibi komutlar.
+Bu fonksiyon da, parser.parseInstruction(instruction) ile komutu parçalar
+ve gerekli bilgileri kullanarak makine kodunu oluşturur.
+Eğer komut bir "Load Upper Immediate" (lui) komutuysa, farklı bir işleme tabi tutulur. */
+
 
 function compileITypeInstruction(instruction) {
   const parts = parser.parseInstruction(instruction);
@@ -100,7 +118,10 @@ function compileITypeInstruction(instruction) {
   }
 }
 
-
+/* J tipi komutlar, genellikle jump komutlarıdır, yani programın yürütme akışını değiştiren komutlar. 
+Örneğin, j (jump), jal (jump and link) gibi komutlar. 
+Bu fonksiyon, parser.parseInstruction(instruction) ile komutu parçaladıktan sonra,
+opcode ve target bilgilerini kullanarak makine kodunu oluşturur. */
 
 function compileJTypeInstruction(instruction) {
   const { category, opcode, target } =
@@ -109,7 +130,10 @@ function compileJTypeInstruction(instruction) {
     convertImmediateToBinary(target, 26);
 }
 
-
+/* Bu fonksiyon, immediate değerini (sabit değer) istenen uzunluktaki ikili (binary) formata dönüştürür.
+Negatif, onaltılı (hex), ikili (binary) veya 
+desimal (decimal) değerleri doğru şekilde işleyip ikili (binary) formata dönüştürür.
+Eğer verilen uzunluktan daha büyük bir değer varsa, bir hata fırlatılır. */
 
 function convertImmediateToBinary(immediate, length) {
   let binary;
@@ -132,4 +156,8 @@ function convertImmediateToBinary(immediate, length) {
 
   return binary.padStart(length, '0');
 }
+
+/*Bu derleyici, MIPS Assembly kodlarını alır ve bunları makine koduna dönüştürür. 
+Assembly kodu, R tipi, I tipi ve J tipi komutlara göre işlenir ve her tür için uygun bir ikili (binary) kod üretilir.
+Ardından, bu ikili kodlar, onaltılı (hex) veya ikili (binary) formatta döndürülür.*/
 

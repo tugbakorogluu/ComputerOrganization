@@ -23,6 +23,9 @@ export class MIPS {
   }
 
   // input: 32bit machine code array in binary format
+  /* setIM, assembly kodlarını ve makine kodlarını dizilere yükler. binMachineCode makine kodlarını ve assemblyCode 
+  assembly kodlarını içerir. Bu, işlemciye çalıştırması için gerekli komutları yükler. */
+
   setIM(assemblyCode, binMachineCode) {
     this.IM_len = binMachineCode.length;
     for (let i = 0; i < assemblyCode.length; i++) {
@@ -35,6 +38,8 @@ export class MIPS {
 
 
   // Fetch the next instruction from this.IM
+  /* fetch, bellekten bir sonraki komutu alır. this.pc program sayacına göre komut, 
+  makine kodu ve assembly kodu dizilerinden çekilir. Ardından program sayacı 4 artırılır. */
   fetch() {
     this.instr = this.IM[this.pc / 4];
     this.instr_asm = this.IM_asm[this.pc / 4];
@@ -42,6 +47,8 @@ export class MIPS {
   }
 
   // Run the CPU for one cycle
+  /* step fonksiyonu, işlemcinin bir döngüsünü simüle eder. İlk olarak komut alınır (fetch()), 
+  sonra makine kodu çözülür (parseMachineCode()), son olarak da çözümleme sonucuna göre komut çalıştırılır (execute()). */
   step() {
     this.fetch();
     if (this.instr !== undefined) {
@@ -51,6 +58,8 @@ export class MIPS {
   }
 
   // Run the CPU for the specified number of cycles
+  /* run, belirtilen sayıda işlemci döngüsünü çalıştırır. Eğer döngü sayısı, 
+  yüklenen komut sayısından fazla ise tüm komutlar sonuna kadar çalıştırılır. */
   run(cycles) {
     if (cycles > this.IM_len) {
       this.runUntilEnd();
@@ -67,6 +76,10 @@ export class MIPS {
     }
   }
 
+  /* parseMachineCode, makine kodunu çözümler ve opcode ile birlikte register değerlerini, 
+  shamt (shift amount) ve funct (işlem tipi) gibi bileşenleri ayıklar. Ayrıca parser.parseInstruction 
+  fonksiyonunu çağırarak assembly kodundaki anlık değeri (imm) ve hedef adresi (target) elde eder. */
+
   parseMachineCode() {
     this.opcode = this.instr.slice(0, 6);
     this.rs = parseInt(this.instr.slice(6, 11), 2);
@@ -80,6 +93,8 @@ export class MIPS {
   }
 
   // Decode the instruction and execute it
+  /* execute, çözümleme sonucu elde edilen opcode ve funct koduna göre ilgili işlemi çalıştırır. Örneğin, 
+  R-tipi komutlar için ADD, SUB, AND vb. işlemler yapılırken, branch komutları (örneğin BEQ, BNE) koşul kontrolü yapar.*/
   execute() {
     switch (this.opcode) {
       case "000000": // R-type instruction
@@ -333,6 +348,9 @@ export class MIPS {
   }
 
   //output functions
+  /*  Bu fonksiyon, işlemcinin register (kayıt) değerlerini hexadecimal (onaltılı) formatta döndürür.
+  this.reg dizisindeki her bir değeri alır ve toHexString fonksiyonu ile 8 haneli hexadecimal (0x ile başlayan) biçime dönüştürür.  */
+
   regToHex() {
     const hexArray = [];
     for (let i = 0; i < this.reg.length; i++) {
@@ -341,6 +359,9 @@ export class MIPS {
     }
     return hexArray;
   }
+
+  /* Bu fonksiyon, veri belleği (DataMemory) içindeki değerleri hexadecimal formatına dönüştürür. this.DM dizisindeki her değeri 
+  toHexString fonksiyonu ile hexadecimal formata çevirir ve sonuçları bir dizi olarak döndürür. */
 
   DMToHex() {
     const hexArray = [];
@@ -351,6 +372,8 @@ export class MIPS {
     return hexArray;
   }
 
+  /* Bu fonksiyon, program sayacı (programcounter) değerini 8 haneli hexadecimal formatında döndürür. 
+  toHexString fonksiyonu kullanılarak pc değeri hexadecimal olarak döndürülür. */
   pcToHex() {
     return "0x" + this.toHexString(this.pc, 8);
   }
@@ -364,10 +387,15 @@ export class MIPS {
   }
 
   // helper functions
+  /* Bu fonksiyon, verilen bir inputStr (string) değerini belirtilen radix (taban) ile tam sayıya dönüştürür ve 
+  ardından bu değeri işaretli 32-bit integer (signed int) formatına dönüştürür.  */
   parseInt32(inputStr, radix) {
     return this.signedInt(parseInt(inputStr, radix));
   }
 
+  /* Bu fonksiyon, unsigned bir tamsayıyı signed 32-bit tam sayıya dönüştürür.
+  Uint32Array ile 32-bit unsigned bir tam sayı oluşturulur.
+  Bu sayı, Int32Array kullanılarak signed bir 32-bit tam sayıya dönüştürülür. */
   signedInt(unsigned) {
     const uint32Array = new Uint32Array(1);
     uint32Array[0] = unsigned;
@@ -375,6 +403,9 @@ export class MIPS {
     return int32Array[0];
   }
 
+  /*  Bu fonksiyon, verilen inputStr (binary string) değerini işaret genişletme işlemi ile yeni uzunlukta bir 
+  binary string'e dönüştürür. Eğer orijinal uzunluk (initialLen) hedef uzunluktan (finalLen) küçükse, 
+  işaret bitini (signBit) kullanarak binary string'in başına ekleme yapar.  */
   signExtend(inputStr, initialLen, finalLen) {
     let outputStr = inputStr;
     const signBit = inputStr.charAt(0);
