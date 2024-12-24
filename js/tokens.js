@@ -50,10 +50,6 @@ export const RTypeInstructions = {
     opcode: "000000",
     funct: "100101",
   },
-  xor: {
-    opcode: "000000",
-    funct: "100110",
-  },
   slt: {
     opcode: "000000",
     funct: "101010",
@@ -70,26 +66,6 @@ export const RTypeInstructions = {
     opcode: "000000",
     funct: "000010",
   },
-  sra: {
-    opcode: "000000",
-    funct: "000011",
-  },
-  mfhi: {
-    opcode: "000000",
-    funct: "010000",
-  },
-  mflo: {
-    opcode: "000000",
-    funct: "010010",
-  },
-  mult: {
-    opcode: "000000",
-    funct: "011000",
-  },
-  div: {
-    opcode: "000000",
-    funct: "011010",
-  },
 };
 
 export const ITypeInstructions = {
@@ -102,29 +78,13 @@ export const ITypeInstructions = {
   addi: {
     opcode: "001000",
   },
-  slti: {
-    opcode: "001010",
-  },
-  andi: {
-    opcode: "001100",
-  },
-  ori: {
-    opcode: "001101",
-  },
-  lui: {
-    opcode: "001111",
-  },
+
   lw: {
     opcode: "100011",
   },
-  lb: {
-    opcode: "100000",
-  },
+
   sw: {
     opcode: "101011",
-  },
-  sb: {
-    opcode: "101000",
   },
 };
 

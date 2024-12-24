@@ -1,5 +1,5 @@
-import * as compiler from './js/compiler.js';
-import * as MIPS from './js/MIPS.js';
+import * as compiler from "./js/compiler.js";
+import * as MIPS from "./js/MIPS.js";
 
 function init() {
   initializeDMTable();
@@ -17,8 +17,8 @@ function initializeDMTable() {
     const row = document.createElement("tr");
 
     const address = document.createElement("th");
-    const decimalAddress = (i * 16);
-    address.textContent = "0x" + decimalAddress.toString(16).padStart(8, '0');
+    const decimalAddress = i * 16;
+    address.textContent = "0x" + decimalAddress.toString(16).padStart(8, "0");
     row.appendChild(address);
 
     for (let j = 0; j < 4; j++) {
@@ -34,13 +34,15 @@ function initializeDMTable() {
 }
 
 function initializeIMTable() {
-  const IM_tableBody = document.querySelector("#instruction-memory-table tbody");
+  const IM_tableBody = document.querySelector(
+    "#instruction-memory-table tbody"
+  );
 
   for (let i = 0; i < 256; i++) {
     const row = document.createElement("tr");
 
     const address = document.createElement("td");
-    address.textContent = "0x" + (i * 4).toString(16).padStart(8, '0');
+    address.textContent = "0x" + (i * 4).toString(16).padStart(8, "0");
     row.appendChild(address);
 
     const code = document.createElement("td");
