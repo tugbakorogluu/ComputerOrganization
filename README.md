@@ -37,7 +37,7 @@ In summary, Project I presents a 32-bit MIPS Simulator with a user-friendly GUI 
 
 ---
 
-## Kurulum ve Çalıştırma
+## Installation and Operation
 
 1. Clone the repository:
 
