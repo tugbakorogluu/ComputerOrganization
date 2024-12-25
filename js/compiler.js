@@ -13,32 +13,42 @@ export function compileToHex(assemblyCode) {
   });
   return machineCode;
 }
-
+// Function to compile assembly code into binary machine code
 export function compileToBin(assemblyCode) {
   const machineCode = [];
+  // Iterate over each instruction in the assembly code
   assemblyCode.forEach(instruction => {
+    // Clean the instruction by removing comments and whitespace
     const cleanedInstruction = removeCommentsAndWhitespace(instruction);
     if (cleanedInstruction) {
+      // Compile the cleaned instruction into binary machine code
       machineCode.push(compileInstruction(cleanedInstruction));
     }
   });
-  return machineCode;
-}
+  return machineCode; // Return the binary machine code array
 
+}
+// Function to compile a single instruction based on its type (R-type, I-type, or J-type)
 function compileInstruction(instruction) {
   const [opcode, ...args] = instruction.trim().split(/\s+/);
-
+  // Check if the instruction is an R-type instruction
   if (tokens.RTypeInstructions.hasOwnProperty(opcode)) {
     return compileRTypeInstruction(instruction);
-  } else if (tokens.ITypeInstructions.hasOwnProperty(opcode)) {
+  } 
+  // Check if the instruction is an I-type instruction
+    else if (tokens.ITypeInstructions.hasOwnProperty(opcode)) {
     return compileITypeInstruction(instruction);
-  } else if (tokens.JTypeInstructions.hasOwnProperty(opcode)) {
+  } 
+  // Check if the instruction is a J-type instruction  
+    else if (tokens.JTypeInstructions.hasOwnProperty(opcode)) {
     return compileJTypeInstruction(instruction);
-  } else {
+  } 
+  // Throw an error for unknown instructions
+    else {
     throw new Error(`Unknown instruction: ${instruction}`);
   }
 }
-
+// Function to compile R-type instructions into binary machine code
 function compileRTypeInstruction(instruction) {
   const parts = parser.parseInstruction(instruction);
   if (parts.category === "Register") {
@@ -47,8 +57,8 @@ function compileRTypeInstruction(instruction) {
       tokens.registers[rs] +
       tokens.registers[rt] +
       tokens.registers[rd] +
-      "00000" +
-      tokens.RTypeInstructions[opcode].funct;
+      "00000" + // Shift amount is always 0 for basic register operations
+      tokens.RTypeInstructions[opcode].funct; // Append the function code
   } else if (parts.category === "Shift") {
     const { category, opcode, rd, rt, shamt } = parts;
     return tokens.RTypeInstructions[opcode].opcode +
@@ -84,13 +94,13 @@ function compileRTypeInstruction(instruction) {
   }
 
 }
-
+// Function to compile I-type instructions into binary machine code
 function compileITypeInstruction(instruction) {
   const parts = parser.parseInstruction(instruction);
   if (parts.category === "LoadUpperImmediate") {
     const { category, opcode, rt, immediate } = parts;
     return tokens.ITypeInstructions[opcode].opcode +
-      "00000" +
+      "00000" + // rs is always 0 for load upper immediate
       tokens.registers[rt] +
       convertImmediateToBinary(immediate, 16);
   } else {

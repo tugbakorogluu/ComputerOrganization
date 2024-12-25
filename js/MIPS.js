@@ -67,15 +67,15 @@ export class MIPS {
   }
 
   parseMachineCode() {
-    this.opcode = this.instr.slice(0, 6);
-    this.rs = parseInt(this.instr.slice(6, 11), 2);
-    this.rt = parseInt(this.instr.slice(11, 16), 2);
-    this.rd = parseInt(this.instr.slice(16, 21), 2);
-    this.shamt = parseInt(this.instr.slice(21, 26));
-    this.funct = this.instr.slice(26, 32);
-    const parts = parser.parseInstruction(this.instr_asm);
-    this.imm = this.signedInt(parseInt(parts.immediate));
-    this.target = parseInt(this.instr.slice(6, 32), 2) * 4;
+    this.opcode = this.instr.slice(0, 6); // First 6 bits
+    this.rs = parseInt(this.instr.slice(6, 11), 2);  // Bits 6-10
+    this.rt = parseInt(this.instr.slice(11, 16), 2); // Bits 11-15
+    this.rd = parseInt(this.instr.slice(16, 21), 2); // Bits 16-20
+    this.shamt = parseInt(this.instr.slice(21, 26)); // Bits 21-25
+    this.funct = this.instr.slice(26, 32); // Last 6 bits
+    const parts = parser.parseInstruction(this.instr_asm); // Parse assembly instruction
+    this.imm = this.signedInt(parseInt(parts.immediate)); // Sign-extend immediate value
+    this.target = parseInt(this.instr.slice(6, 32), 2) * 4;// Compute jump target 
   }
 
   // Decode the instruction and execute it

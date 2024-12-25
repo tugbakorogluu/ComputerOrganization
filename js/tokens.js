@@ -33,6 +33,7 @@ export const registers = {
   $ra: "11111",
 };
 
+// R-Type instructions in MIPS with their opcodes and funct codes
 export const RTypeInstructions = {
   add: {
     opcode: "000000",
@@ -67,7 +68,7 @@ export const RTypeInstructions = {
     funct: "000010",
   },
 };
-
+// I-Type instructions in MIPS with their opcodes
 export const ITypeInstructions = {
   beq: {
     opcode: "000100",
@@ -87,7 +88,7 @@ export const ITypeInstructions = {
     opcode: "101011",
   },
 };
-
+// J-Type instructions in MIPS with their opcodes
 export const JTypeInstructions = {
   j: {
     opcode: "000010",
