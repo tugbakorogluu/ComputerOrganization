@@ -152,6 +152,13 @@ export class MIPS {
   or() {
     this.reg[this.rd] = this.reg[this.rs] | this.reg[this.rt];
   }
+  slt() {
+    if (this.reg[this.rs] < this.reg[this.rt]) {
+      this.reg[this.rd] = 1;
+    } else {
+      this.reg[this.rd] = 0;
+    }
+  }
 
   jr() {
     this.pc = this.reg[this.rs] >>> 0; // unsigned
