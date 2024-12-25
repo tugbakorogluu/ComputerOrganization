@@ -1,4 +1,4 @@
-import * as parser from './parser.js';
+import * as parser from "./parser.js";
 
 export class MIPS {
   constructor() {
@@ -33,7 +33,6 @@ export class MIPS {
     }
   }
 
-
   // Fetch the next instruction from this.IM
   fetch() {
     this.instr = this.IM[this.pc / 4];
@@ -62,7 +61,7 @@ export class MIPS {
   }
 
   runUntilEnd() {
-    while (this.pc < (this.IM_len * 4)) {
+    while (this.pc < this.IM_len * 4) {
       this.step();
     }
   }
@@ -96,9 +95,6 @@ export class MIPS {
           case "100101": // OR
             this.or();
             break;
-          case "100110": // XOR
-            this.xor();
-            break;
           case "101010": // SLT
             this.slt();
             break;
@@ -110,21 +106,6 @@ export class MIPS {
             break;
           case "000010": // SRL
             this.srl();
-            break;
-          case "000011": // SRA
-            this.sra();
-            break;
-          case "010000": // MFHI
-            this.mfhi();
-            break;
-          case "010010": // MFLO
-            this.mflo();
-            break;
-          case "011000": // MULT
-            this.mult();
-            break;
-          case "011010": // DIV
-            this.div();
             break;
           default:
             throw new Error(`Unsupported function code: ${this.funct}`);
@@ -139,32 +120,11 @@ export class MIPS {
       case "001000": // ADDI
         this.addi();
         break;
-      case "001010": // SLTI
-        this.slti();
-        break;
-      case "001100": // ANDI
-        this.andi();
-        break;
-      case "001101": // ORI
-        this.ori();
-        break;
-      case "001111": // LUI
-        this.lui();
-        break;
       case "100011": // LW
         this.lw();
         break;
-      case "100000": // LB
-        this.lb();
-        break;
       case "101011": // SW
         this.sw();
-        break;
-      case "101000": // SB
-        this.sb();
-        break;
-      case "111000": // MULI
-        this.muli();
         break;
       case "000010": // J
         this.j();
@@ -193,18 +153,6 @@ export class MIPS {
     this.reg[this.rd] = this.reg[this.rs] | this.reg[this.rt];
   }
 
-  xor() {
-    this.reg[this.rd] = this.reg[this.rs] ^ this.reg[this.rt];
-  }
-
-  slt() {
-    if (this.reg[this.rs] < this.reg[this.rt]) {
-      this.reg[this.rd] = 1;
-    } else {
-      this.reg[this.rd] = 0;
-    }
-  }
-
   jr() {
     this.pc = this.reg[this.rs] >>> 0; // unsigned
   }
@@ -215,42 +163,6 @@ export class MIPS {
 
   srl() {
     this.reg[this.rd] = this.reg[this.rt] >>> this.shamt;
-  }
-
-  sra() {
-    this.reg[this.rd] = this.reg[this.rt] >> this.shamt;
-  }
-
-  mfhi() {
-    this.reg[this.rd] = this.hi;
-  }
-
-  mflo() {
-    this.reg[this.rd] = this.lo;
-  }
-
-  mult() {
-    const product = this.reg[this.rs] * this.reg[this.rt];
-    const binary = this.toBinString(product, 64);
-    this.lo = this.parseInt32(binary.slice(32), 2);
-    this.hi = this.parseInt32(binary.slice(0, 32), 2);
-  }
-
-  div() {
-    const dividend = this.reg[this.rs];
-    const divisor = this.reg[this.rt];
-
-    if (divisor === 0) {
-      throw new Error('Division by zero');
-    }
-
-    // Calculate the quotient and remainder
-    const quotient = Math.floor(dividend / divisor);
-    const remainder = dividend % divisor;
-
-    // Store the quotient in LO and the remainder in HI
-    this.lo = quotient;
-    this.hi = remainder;
   }
 
   beq() {
@@ -269,58 +181,15 @@ export class MIPS {
     this.reg[this.rt] = this.reg[this.rs] + this.imm;
   }
 
-  slti() {
-    if (this.reg[this.rs] < this.imm) {
-      this.reg[this.rt] = 1;
-    } else {
-      this.reg[this.rt] = 0;
-    }
-  }
-
-  andi() {
-    this.reg[this.rt] = this.reg[this.rs] & this.imm;
-  }
-
-  ori() {
-    this.reg[this.rt] = this.reg[this.rs] | this.imm;
-  }
-
-  lui() {
-    const imm16 = this.imm << 16;
-    this.reg[this.rt] = imm16;
-  }
-
   lw() {
     const address = this.reg[this.rs] + this.imm;
     const data = this.DM[address / 4];
     this.reg[this.rt] = data;
   }
 
-  lb() {
-    const byteAddr = this.reg[this.rs] + this.imm;
-    const wordAddr = byteAddr - (byteAddr % 4);
-    const word = this.toBinString(this.DM[wordAddr / 4], 32);
-    const start = 2 * (4 - (byteAddr % 4)) - 2; // byte
-    const end = 2 * (4 - (byteAddr % 4)); // byte
-    const byte = word.slice(start * 4, end * 4);
-    this.reg[this.rt] = this.parseInt32(this.signExtend(byte, 8, 32), 2);
-  }
-
   sw() {
     const address = this.reg[this.rs] + this.imm;
     this.DM[address / 4] = this.reg[this.rt];
-  }
-
-  sb() {
-    const byteAddr = this.reg[this.rs] + this.imm;
-    const wordAddr = byteAddr - (byteAddr % 4);
-    const word = this.toHexString(this.DM[wordAddr / 4], 8);
-    const start = 2 * (4 - (byteAddr % 4)) - 2; // byte
-    const end = 2 * (4 - (byteAddr % 4)); // byte
-    const result = word.slice(0, start) +
-      this.toHexString(this.reg[this.rt], 8).slice(6, 8) +
-      word.slice(end, 8);
-    this.DM[wordAddr / 4] = this.parseInt32(result, 16);
   }
 
   j() {
@@ -395,7 +264,7 @@ export class MIPS {
     const hexStr = parseInt(binaryStr, 2).toString(16);
 
     // Pad the hexadecimal string with zeros to the desired length
-    return hexStr.padStart(hexLen, '0');
+    return hexStr.padStart(hexLen, "0");
   }
 
   toBinString(num, binLen) {
@@ -403,7 +272,7 @@ export class MIPS {
     let binaryStr = Math.abs(num).toString(2);
 
     // If binaryStr is shorter than binLen, pad with zeros to the left
-    binaryStr = binaryStr.padStart(binLen, '0');
+    binaryStr = binaryStr.padStart(binLen, "0");
 
     // If num is negative, take the two's complement
     if (num < 0) {
@@ -419,7 +288,10 @@ export class MIPS {
     const paddedStr = binaryStr.padStart(length, "0");
 
     // Invert all bits
-    const invertedStr = paddedStr.split("").map(bit => bit === "0" ? "1" : "0").join("");
+    const invertedStr = paddedStr
+      .split("")
+      .map((bit) => (bit === "0" ? "1" : "0"))
+      .join("");
 
     // Add 1 to the inverted value
     let carry = 1;
