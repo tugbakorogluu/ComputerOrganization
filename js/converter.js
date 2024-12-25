@@ -16,7 +16,7 @@ function displayMachineCode(machineCode) {
 }
 
 convertToBinButton.addEventListener("click", () => {
-  const assemblyCode = editor.value.split("\n");
+  const assemblyCode = editor.value.split("\n").map(line => line.trim()); // Boşlukları temizle
   try {
     const machineCode = compileToBin(assemblyCode);
     displayMachineCode(machineCode);
@@ -26,7 +26,7 @@ convertToBinButton.addEventListener("click", () => {
 });
 
 convertToHexButton.addEventListener("click", () => {
-  const assemblyCode = assemblyInput.value.split("\n");
+  const assemblyCode = editor.value.split("\n").map(line => line.trim()); // Boşlukları temizle
   try {
     const machineCode = compileToHex(assemblyCode);
     displayMachineCode(machineCode);

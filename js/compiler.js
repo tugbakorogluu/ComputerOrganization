@@ -4,9 +4,12 @@ import * as tokens from './tokens.js';
 export function compileToHex(assemblyCode) {
   const machineCode = [];
   assemblyCode.forEach(instruction => {
-    const compiledInstruction = compileInstruction(instruction);
-    const hexCode = parseInt(compiledInstruction, 2).toString(16).padStart(8, "0");
-    machineCode.push(hexCode);
+    const cleanedInstruction = removeCommentsAndWhitespace(instruction);
+    if (cleanedInstruction) {
+      const compiledInstruction = compileInstruction(cleanedInstruction);
+      const hexCode = parseInt(compiledInstruction, 2).toString(16).padStart(8, "0");
+      machineCode.push(hexCode);
+    }
   });
   return machineCode;
 }
@@ -14,7 +17,10 @@ export function compileToHex(assemblyCode) {
 export function compileToBin(assemblyCode) {
   const machineCode = [];
   assemblyCode.forEach(instruction => {
-    machineCode.push(compileInstruction(instruction));
+    const cleanedInstruction = removeCommentsAndWhitespace(instruction);
+    if (cleanedInstruction) {
+      machineCode.push(compileInstruction(cleanedInstruction));
+    }
   });
   return machineCode;
 }
@@ -79,10 +85,6 @@ function compileRTypeInstruction(instruction) {
 
 }
 
-// In here we are using a helper function parser to parse instractions
-// Then we return a dictionary in tokens and the index is opcode itself and we get the opcode
-
-
 function compileITypeInstruction(instruction) {
   const parts = parser.parseInstruction(instruction);
   if (parts.category === "LoadUpperImmediate") {
@@ -100,16 +102,12 @@ function compileITypeInstruction(instruction) {
   }
 }
 
-
-
 function compileJTypeInstruction(instruction) {
   const { category, opcode, target } =
     parser.parseInstruction(instruction);
   return tokens.JTypeInstructions[opcode].opcode +
     convertImmediateToBinary(target, 26);
 }
-
-
 
 function convertImmediateToBinary(immediate, length) {
   let binary;
@@ -133,3 +131,7 @@ function convertImmediateToBinary(immediate, length) {
   return binary.padStart(length, '0');
 }
 
+function removeCommentsAndWhitespace(instruction) {
+  const trimmedInstruction = instruction.split('#')[0].trim();
+  return trimmedInstruction.length > 0 ? trimmedInstruction : null;
+}
