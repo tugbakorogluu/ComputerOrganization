@@ -3,7 +3,7 @@ import { compileToBin, compileToHex } from "./compiler.js";
 const editor = document.getElementById("editor");
 
 const convertToBinButton = document.getElementById("convertToBin");
-const convertToHexButton = document.getElementById("convertToHex");
+
 const outputDiv = document.getElementById("output");
 
 function displayMachineCode(machineCode) {
