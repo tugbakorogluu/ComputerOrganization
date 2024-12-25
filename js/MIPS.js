@@ -152,13 +152,6 @@ export class MIPS {
   or() {
     this.reg[this.rd] = this.reg[this.rs] | this.reg[this.rt];
   }
-  slt() {
-    if (this.reg[this.rs] < this.reg[this.rt]) {
-      this.reg[this.rd] = 1;
-    } else {
-      this.reg[this.rd] = 0;
-    }
-  }
 
   jr() {
     this.pc = this.reg[this.rs] >>> 0; // unsigned
@@ -188,15 +181,51 @@ export class MIPS {
     this.reg[this.rt] = this.reg[this.rs] + this.imm;
   }
 
+  andi() {
+    this.reg[this.rt] = this.reg[this.rs] & this.imm;
+  }
+
+  ori() {
+    this.reg[this.rt] = this.reg[this.rs] | this.imm;
+  }
+
+  lui() {
+    const imm16 = this.imm << 16;
+    this.reg[this.rt] = imm16;
+  }
+
   lw() {
     const address = this.reg[this.rs] + this.imm;
     const data = this.DM[address / 4];
     this.reg[this.rt] = data;
   }
 
+  lb() {
+    const byteAddr = this.reg[this.rs] + this.imm;
+    const wordAddr = byteAddr - (byteAddr % 4);
+    const word = this.toBinString(this.DM[wordAddr / 4], 32);
+    const start = 2 * (4 - (byteAddr % 4)) - 2; // byte
+    const end = 2 * (4 - (byteAddr % 4)); // byte
+    const byte = word.slice(start * 4, end * 4);
+    this.reg[this.rt] = this.parseInt32(this.signExtend(byte, 8, 32), 2);
+  }
+
   sw() {
     const address = this.reg[this.rs] + this.imm;
     this.DM[address / 4] = this.reg[this.rt];
+  }
+
+  sb() {
+    const byteAddr = this.reg[this.rs] + this.imm;
+    const wordAddr = byteAddr - (byteAddr % 4);
+    const word = this.toHexString(this.DM[wordAddr / 4], 8);
+    const start = 2 * (4 - (byteAddr % 4)) - 2; // byte
+    const end = 2 * (4 - (byteAddr % 4)); // byte
+    const result =
+      word.slice(0, start) +
+      this.toHexString(this.reg[this.rt], 8).slice(6, 8) +
+      word.slice(end, 8);
+    this.DM[wordAddr / 4] = this.parseInt32(result, 16);
   }
 
   j() {

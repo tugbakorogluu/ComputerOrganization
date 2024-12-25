@@ -233,3 +233,14 @@ h2 {
         border-bottom: 1px solid #404040;
     }
 }
+.step-output-display {
+    background-color: #363636;
+    color: #f28749;
+    padding: 10px;
+    margin-top: 10px;
+    font-family: 'Monaco', monospace;
+    overflow-y: auto;
+    height: 150px;
+    border: 1px solid #404040;
+    border-radius: 5px;
+}

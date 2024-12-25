@@ -106,4 +106,3 @@ function updateElement(val, ID) {
   const codeElement = document.querySelector(ID);
   codeElement.textContent = val;
 }
-

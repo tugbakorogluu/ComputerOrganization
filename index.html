@@ -35,11 +35,18 @@
         <div class="col-4">
           <div id="edit">
             <h2>Edit Code</h2>
-            <textarea id="editor"></textarea>
-            <div class="button-group">
-              <button id="run-btn">Run</button>
+            <textarea id="editor" class="form-control" rows="10"></textarea>
+            <div class="button-group mt-3">
+              <button id="run-btn" class="btn btn-primary">Run</button>
+              <button id="step-btn" class="btn btn-secondary">Step</button>
+              <button id="reset-btn" class="btn btn-warning">Reset</button>
               <button id="convertToBin">Convert to Binary</button>
             </div>
+            <div id="step-status" class="mt-3">
+              <h4>Current Step Info</h4>
+              <pre id="step-output"></pre>
+            </div>
+
           </div>
         </div>
 
