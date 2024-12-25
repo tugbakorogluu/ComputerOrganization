@@ -1,3 +1,4 @@
+// Registers and their corresponding binary values in MIPS architecture
 export const registers = {
   $zero: "00000",
   $at: "00001",
