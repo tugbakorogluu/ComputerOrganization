@@ -15,8 +15,15 @@ function displayMachineCode(machineCode) {
   });
 }
 
+function preprocessAssemblyCode(input) {
+  return input
+    .split("\n")
+    .map(line => line.trim()) // Her satırın başındaki ve sonundaki boşlukları sil
+    .filter(line => line.length > 0); // Boş satırları kaldır
+}
+
 convertToBinButton.addEventListener("click", () => {
-  const assemblyCode = editor.value.split("\n");
+  const assemblyCode = preprocessAssemblyCode(editor.value);
   try {
     const machineCode = compileToBin(assemblyCode);
     displayMachineCode(machineCode);
@@ -26,7 +33,7 @@ convertToBinButton.addEventListener("click", () => {
 });
 
 convertToHexButton.addEventListener("click", () => {
-  const assemblyCode = assemblyInput.value.split("\n");
+  const assemblyCode = preprocessAssemblyCode(editor.value);
   try {
     const machineCode = compileToHex(assemblyCode);
     displayMachineCode(machineCode);
