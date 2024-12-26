@@ -4,11 +4,17 @@ import * as tokens from './tokens.js';
 export function compileToHex(assemblyCode) {
   const machineCode = [];
   assemblyCode.forEach(instruction => {
-    const cleanedInstruction = removeCommentsAndWhitespace(instruction);
-    if (cleanedInstruction) {
-      const compiledInstruction = compileInstruction(cleanedInstruction);
-      const hexCode = parseInt(compiledInstruction, 2).toString(16).padStart(8, "0");
-      machineCode.push(hexCode);
+    try {
+      const cleanedInstruction = removeCommentsAndWhitespace(instruction);
+      if (cleanedInstruction) {
+        const compiledInstruction = compileInstruction(cleanedInstruction);
+        if (compiledInstruction) {
+          const hexCode = parseInt(compiledInstruction, 2).toString(16).padStart(8, "0");
+          machineCode.push(hexCode);
+        }
+      }
+    } catch (error) {
+      alert(`Error in instruction: "${instruction}". ${error.message}`);
     }
   });
   return machineCode;
@@ -17,121 +23,170 @@ export function compileToHex(assemblyCode) {
 export function compileToBin(assemblyCode) {
   const machineCode = [];
   assemblyCode.forEach(instruction => {
-    const cleanedInstruction = removeCommentsAndWhitespace(instruction);
-    if (cleanedInstruction) {
-      machineCode.push(compileInstruction(cleanedInstruction));
+    try {
+      const cleanedInstruction = removeCommentsAndWhitespace(instruction);
+      if (cleanedInstruction) {
+        const compiledInstruction = compileInstruction(cleanedInstruction);
+        if (compiledInstruction) {
+          machineCode.push(compiledInstruction);
+        }
+      }
+    } catch (error) {
+      alert(`Error in instruction: "${instruction}". ${error.message}`);
     }
   });
   return machineCode;
 }
 
 function compileInstruction(instruction) {
-  const [opcode, ...args] = instruction.trim().split(/\s+/);
+  try {
+    const [opcode, ...args] = instruction.trim().split(/\s+/);
 
-  if (tokens.RTypeInstructions.hasOwnProperty(opcode)) {
-    return compileRTypeInstruction(instruction);
-  } else if (tokens.ITypeInstructions.hasOwnProperty(opcode)) {
-    return compileITypeInstruction(instruction);
-  } else if (tokens.JTypeInstructions.hasOwnProperty(opcode)) {
-    return compileJTypeInstruction(instruction);
-  } else {
-    throw new Error(`Unknown instruction: ${instruction}`);
+    if (tokens.RTypeInstructions.hasOwnProperty(opcode)) {
+      return compileRTypeInstruction(instruction);
+    } else if (tokens.ITypeInstructions.hasOwnProperty(opcode)) {
+      return compileITypeInstruction(instruction);
+    } else if (tokens.JTypeInstructions.hasOwnProperty(opcode)) {
+      return compileJTypeInstruction(instruction);
+    } else {
+      alert(`Unknown opcode: ${opcode}`);
+      return null;  // Return null if opcode is unknown
+    }
+  } catch (error) {
+    alert(`Failed to compile instruction: "${instruction}". ${error.message}`);
+    return null;  // Ensure function does not continue in case of error
   }
 }
 
 function compileRTypeInstruction(instruction) {
-  const parts = parser.parseInstruction(instruction);
-  if (parts.category === "Register") {
-    const { category, opcode, rd, rs, rt } = parts;
-    return tokens.RTypeInstructions[opcode].opcode +
-      tokens.registers[rs] +
-      tokens.registers[rt] +
-      tokens.registers[rd] +
-      "00000" +
-      tokens.RTypeInstructions[opcode].funct;
-  } else if (parts.category === "Shift") {
-    const { category, opcode, rd, rt, shamt } = parts;
-    return tokens.RTypeInstructions[opcode].opcode +
-      "00000" +
-      tokens.registers[rt] +
-      tokens.registers[rd] +
-      convertImmediateToBinary(shamt, 5) +
-      tokens.RTypeInstructions[opcode].funct;
-  } else if (parts.category === "MultDiv") {
-    const { category, opcode, rs, rt } = parts;
-    return tokens.RTypeInstructions[opcode].opcode +
-      tokens.registers[rs] +
-      tokens.registers[rt] +
-      "00000" +
-      "00000" +
-      tokens.RTypeInstructions[opcode].funct;
-  } else if (parts.category === "MoveFrom") {
-    const { category, opcode, rd } = parts;
-    return tokens.RTypeInstructions[opcode].opcode +
-      "00000" +
-      "00000" +
-      tokens.registers[rd] +
-      "00000" +
-      tokens.RTypeInstructions[opcode].funct;
-  } else if (parts.category === "RJump") {
-    const { category, opcode, rs } = parts;
-    return tokens.RTypeInstructions[opcode].opcode +
-      tokens.registers[rs] +
-      "00000" +
-      "00000" +
-      "00000" +
-      tokens.RTypeInstructions[opcode].funct;
-  }
+  try {
+    const parts = parser.parseInstruction(instruction);
 
+    if (!parts) {
+      alert("Failed to parse instruction.");
+      return null;  // Return null if parsing fails
+    }
+
+    if (parts.category === "Register") {
+      const { opcode, rd, rs, rt } = parts;
+      return tokens.RTypeInstructions[opcode].opcode +
+        tokens.registers[rs] +
+        tokens.registers[rt] +
+        tokens.registers[rd] +
+        "00000" +
+        tokens.RTypeInstructions[opcode].funct;
+    } else if (parts.category === "Shift") {
+      const { opcode, rd, rt, shamt } = parts;
+      return tokens.RTypeInstructions[opcode].opcode +
+        "00000" +
+        tokens.registers[rt] +
+        tokens.registers[rd] +
+        convertImmediateToBinary(shamt, 5) +
+        tokens.RTypeInstructions[opcode].funct;
+    } else if (parts.category === "MultDiv") {
+      const { opcode, rs, rt } = parts;
+      return tokens.RTypeInstructions[opcode].opcode +
+        tokens.registers[rs] +
+        tokens.registers[rt] +
+        "00000" +
+        "00000" +
+        tokens.RTypeInstructions[opcode].funct;
+    } else if (parts.category === "MoveFrom") {
+      const { opcode, rd } = parts;
+      return tokens.RTypeInstructions[opcode].opcode +
+        "00000" +
+        "00000" +
+        tokens.registers[rd] +
+        "00000" +
+        tokens.RTypeInstructions[opcode].funct;
+    } else if (parts.category === "RJump") {
+      const { opcode, rs } = parts;
+      return tokens.RTypeInstructions[opcode].opcode +
+        tokens.registers[rs] +
+        "00000" +
+        "00000" +
+        "00000" +
+        tokens.RTypeInstructions[opcode].funct;
+    } else {
+      alert("Unknown R-Type category.");
+      return null;  // Return null for unknown categories
+    }
+  } catch (error) {
+    alert(`R-Type instruction error: ${error.message}`);
+    return null;  // Ensure function does not continue in case of error
+  }
 }
 
 function compileITypeInstruction(instruction) {
-  const parts = parser.parseInstruction(instruction);
-  if (parts.category === "LoadUpperImmediate") {
-    const { category, opcode, rt, immediate } = parts;
-    return tokens.ITypeInstructions[opcode].opcode +
-      "00000" +
-      tokens.registers[rt] +
-      convertImmediateToBinary(immediate, 16);
-  } else {
-    const { category, opcode, rt, rs, immediate } = parts;
-    return tokens.ITypeInstructions[opcode].opcode +
-      tokens.registers[rs] +
-      tokens.registers[rt] +
-      convertImmediateToBinary(immediate, 16);
+  try {
+    const parts = parser.parseInstruction(instruction);
+
+    if (!parts) {
+      alert("Failed to parse instruction.");
+      return null;  // Return null if parsing fails
+    }
+
+    if (parts.category === "LoadUpperImmediate") {
+      const { opcode, rt, immediate } = parts;
+      return tokens.ITypeInstructions[opcode].opcode +
+        "00000" +
+        tokens.registers[rt] +
+        convertImmediateToBinary(immediate, 16);
+    } else {
+      const { opcode, rt, rs, immediate } = parts;
+      return tokens.ITypeInstructions[opcode].opcode +
+        tokens.registers[rs] +
+        tokens.registers[rt] +
+        convertImmediateToBinary(immediate, 16);
+    }
+  } catch (error) {
+    alert(`I-Type instruction error: ${error.message}`);
+    return null;  // Return null if error occurs
   }
 }
 
 function compileJTypeInstruction(instruction) {
-  const { category, opcode, target } =
-    parser.parseInstruction(instruction);
-  return tokens.JTypeInstructions[opcode].opcode +
-    convertImmediateToBinary(target, 26);
+  try {
+    const { opcode, target } = parser.parseInstruction(instruction);
+    return tokens.JTypeInstructions[opcode].opcode +
+      convertImmediateToBinary(target, 26);
+  } catch (error) {
+    alert(`J-Type instruction error: ${error.message}`);
+    return null;  // Return null if error occurs
+  }
 }
 
 function convertImmediateToBinary(immediate, length) {
-  let binary;
-  if (immediate.startsWith('-')) {
-    // negative decimal immediate value
-    binary = (Math.pow(2, length) + parseInt(immediate)).toString(2);
-  } else if (immediate.startsWith('0x')) {
-    // hexadecimal immediate value
-    binary = parseInt(immediate.substring(2), 16).toString(2);
-  } else if (immediate.startsWith('0b')) {
-    // binary immediate value
-    binary = immediate.substring(2);
-  } else { // decimal immediate value
-    binary = parseInt(immediate).toString(2);
-  }
+  try {
+    let binary;
+    if (immediate.startsWith('-')) {
+      binary = (Math.pow(2, length) + parseInt(immediate)).toString(2);
+    } else if (immediate.startsWith('0x')) {
+      binary = parseInt(immediate.substring(2), 16).toString(2);
+    } else if (immediate.startsWith('0b')) {
+      binary = immediate.substring(2);
+    } else {
+      binary = parseInt(immediate).toString(2);
+    }
 
-  if (binary.length > length) {
-    throw new Error(`Binary value ${binary} exceeds the provided length of ${length}.`);
-  }
+    if (binary.length > length) {
+      alert(`Binary value ${binary} exceeds the provided length of ${length}.`);
+      return null;  // Return null to avoid overflow or incorrect output
+    }
 
-  return binary.padStart(length, '0');
+    return binary.padStart(length, '0');
+  } catch (error) {
+    alert(`Immediate conversion error: ${error.message}`);
+    return null;  // Return null in case of conversion error
+  }
 }
 
 function removeCommentsAndWhitespace(instruction) {
-  const trimmedInstruction = instruction.split('#')[0].trim();
-  return trimmedInstruction.length > 0 ? trimmedInstruction : null;
+  try {
+    const trimmedInstruction = instruction.split('#')[0].trim();
+    return trimmedInstruction.length > 0 ? trimmedInstruction : null;
+  } catch (error) {
+    alert(`Failed to remove comments or whitespace. ${error.message}`);
+    return null;  // Return null if comment removal fails
+  }
 }
