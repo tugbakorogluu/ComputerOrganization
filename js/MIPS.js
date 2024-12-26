@@ -42,11 +42,46 @@ export class MIPS {
 
   // Run the CPU for one cycle
   step() {
+    const prevRegisters = [...this.reg];
+    const prevMemory = [...this.DM];
+
     this.fetch();
     if (this.instr !== undefined) {
       this.parseMachineCode();
       this.execute();
+
+      // Değişen register ve memory değerlerini bulalım
+      const changes = {
+        registers: {},
+        memory: {},
+      };
+
+      // Register değişikliklerini kontrol et
+      for (let i = 0; i < this.reg.length; i++) {
+        if (this.reg[i] !== prevRegisters[i]) {
+          changes.registers[i] = {
+            old: "0x" + this.toHexString(prevRegisters[i], 8),
+            new: "0x" + this.toHexString(this.reg[i], 8),
+          };
+        }
+      }
+
+      // Memory değişikliklerini kontrol et
+      for (let i = 0; i < this.DM.length; i++) {
+        if (this.DM[i] !== prevMemory[i]) {
+          changes.memory[i] = {
+            old: "0x" + this.toHexString(prevMemory[i], 8),
+            new: "0x" + this.toHexString(this.DM[i], 8),
+          };
+        }
+      }
+
+      return {
+        instruction: this.instr_asm,
+        changes: changes,
+      };
     }
+    return null;
   }
 
   // Run the CPU for the specified number of cycles
@@ -78,58 +113,57 @@ export class MIPS {
     this.target = parseInt(this.instr.slice(6, 32), 2) * 4;
   }
 
-  // Decode the instruction and execute it
   execute() {
     switch (this.opcode) {
       case "000000": // R-type instruction
         switch (this.funct) {
-          case "100000": // ADD
+          case "100000":
             this.add();
             break;
-          case "100010": // SUB
+          case "100010":
             this.sub();
             break;
-          case "100100": // AND
+          case "100100":
             this.and();
             break;
-          case "100101": // OR
+          case "100101":
             this.or();
             break;
-          case "101010": // SLT
+          case "101010":
             this.slt();
             break;
-          case "001000": // JR
+          case "001000":
             this.jr();
             break;
-          case "000000": // SLL
+          case "000000":
             this.sll();
             break;
-          case "000010": // SRL
+          case "000010":
             this.srl();
             break;
           default:
             throw new Error(`Unsupported function code: ${this.funct}`);
         }
         break;
-      case "000100": // BEQ
+      case "000100":
         this.beq();
         break;
-      case "000101": // BNE
+      case "000101":
         this.bne();
         break;
-      case "001000": // ADDI
+      case "001000":
         this.addi();
         break;
-      case "100011": // LW
+      case "100011":
         this.lw();
         break;
-      case "101011": // SW
+      case "101011":
         this.sw();
         break;
-      case "000010": // J
+      case "000010":
         this.j();
         break;
-      case "000011": // JAL
+      case "000011":
         this.jal();
         break;
       default:
@@ -137,6 +171,23 @@ export class MIPS {
     }
   }
 
+  // Yeni metod: Mevcut adım bilgilerini döndürür
+  getCurrentStepInfo() {
+    return {
+      instruction: this.instr_asm,
+      pc: this.pcToHex(),
+      opcode: this.opcode,
+      rs: this.rs,
+      rt: this.rt,
+      rd: this.rd,
+      imm: this.imm,
+      target: this.target,
+      registers: this.regToHex(),
+      memory: this.DMToHex(),
+    };
+  }
+
+  // R-Type ve diğer desteklenen metodlar burada yer alıyor...
   add() {
     this.reg[this.rd] = this.reg[this.rs] + this.reg[this.rt];
   }
@@ -151,6 +202,13 @@ export class MIPS {
 
   or() {
     this.reg[this.rd] = this.reg[this.rs] | this.reg[this.rt];
+  }
+  slt() {
+    if (this.reg[this.rs] < this.reg[this.rt]) {
+      this.reg[this.rd] = 1;
+    } else {
+      this.reg[this.rd] = 0;
+    }
   }
 
   jr() {
