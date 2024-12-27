@@ -319,30 +319,6 @@ export class MIPS {
     }
   }
 
-  andi() {
-    try {
-      this.reg[this.rt] = this.reg[this.rs] & this.imm;
-    } catch (error) {
-      alert(`Error in andi: ${error.message}`);
-    }
-  }
-
-  ori() {
-    try {
-      this.reg[this.rt] = this.reg[this.rs] | this.imm;
-    } catch (error) {
-      alert(`Error in ori: ${error.message}`);
-    }
-  }
-
-  lui() {
-    try {
-      const imm16 = this.imm << 16;
-      this.reg[this.rt] = imm16;
-    } catch (error) {
-      alert(`Error in lui: ${error.message}`);
-    }
-  }
 
   lw() {
     try {
@@ -354,20 +330,7 @@ export class MIPS {
     }
 }
 
-  lb() {
-    try {
-      const byteAddr = this.reg[this.rs] + this.imm;
-      const wordAddr = byteAddr - (byteAddr % 4);
-      const word = this.toBinString(this.DM[wordAddr / 4], 32);
-      const start = 2 * (4 - (byteAddr % 4)) - 2; // byte
-      const end = 2 * (4 - (byteAddr % 4)); // byte
-      const byte = word.slice(start * 4, end * 4);
-      this.reg[this.rt] = this.parseInt32(this.signExtend(byte, 8, 32), 2);
-    } catch (error) {
-      alert(`Error in lb: ${error.message}`);
-    }
-  }
-
+ 
   sw() {
     try {
       const address = this.reg[this.rs] + this.imm;
@@ -376,22 +339,7 @@ export class MIPS {
       alert(`Error in sw: ${error.message}`);
     }
   }
-  sb() {
-    try {
-      const byteAddr = this.reg[this.rs] + this.imm;
-      const wordAddr = byteAddr - (byteAddr % 4);
-      const word = this.toHexString(this.DM[wordAddr / 4], 8);
-      const start = 2 * (4 - (byteAddr % 4)) - 2; // byte
-      const end = 2 * (4 - (byteAddr % 4)); // byte
-      const result =
-        word.slice(0, start) +
-        this.toHexString(this.reg[this.rt], 8).slice(6, 8) +
-        word.slice(end, 8);
-      this.DM[wordAddr / 4] = this.parseInt32(result, 16);
-    } catch (error) {
-      alert(`Error in sb: ${error.message}`);
-    }
-  }
+ 
 
   j() {
     try {
