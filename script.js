@@ -68,7 +68,6 @@ function initializeIMTable() {
 }
 
 function run() {
-  // Get assembly code from textarea
   const textarea = document.querySelector("#editor");
   const input = textarea.value.split("\n");
   const assemblyCode = [];
@@ -80,11 +79,9 @@ function run() {
     }
   }
 
-  // Compile assembly code to machine code
   const hexMachineCode = compiler.compileToHex(assemblyCode);
   const binMachineCode = compiler.compileToBin(assemblyCode);
 
-  // Run the machine code
   const myMIPS = new MIPS.MIPS();
   myMIPS.setIM(assemblyCode, binMachineCode);
   myMIPS.runUntilEnd();
@@ -94,7 +91,6 @@ function run() {
   const hi = myMIPS.hiToHex();
   const lo = myMIPS.loToHex();
 
-  // Display the data in tables
   updateTable(hexMachineCode, "#IM_code_", "0x");
   updateTable(assemblyCode, "#IM_source_");
   updateTable(reg, "#reg_");
@@ -116,7 +112,6 @@ function updateElement(val, ID) {
   codeElement.textContent = val;
 }
 
-// Yeni kodlar başlıyor
 let mips = null;
 let currentInstructionIndex = 0;
 
@@ -139,19 +134,15 @@ function initializeSimulator() {
   mips.setIM(assemblyCode, binMachineCode);
   currentInstructionIndex = 0;
 
-  // Tüm değerleri sıfırla
   resetDisplay();
 }
 
 function resetDisplay() {
-  // Register ve memory değerlerini sıfırla
   updateTable(new Array(32).fill("00000000"), "#reg_", "0x");
   updateTable(new Array(256).fill("00000000"), "#DM_", "0x");
   updateElement("0x00000000", "#pc");
   updateElement("0x00000000", "#hi");
   updateElement("0x00000000", "#lo");
-
-  // Step output'u temizle
   document.getElementById("step-output").textContent = "";
 }
 
@@ -161,37 +152,34 @@ function step() {
   }
 
   const stepResult = mips.step();
-  if (stepResult) {
-    displayStepInfo(stepResult);
-    currentInstructionIndex++;
-  } else {
-    document.getElementById("step-output").textContent =
-      "Program execution completed.";
-  }
+  displayStepInfo(stepResult);
 }
 
 function displayStepInfo(stepResult) {
   const stepOutput = document.getElementById("step-output");
+
+  if (!stepResult) {
+    stepOutput.textContent = "Program execution completed.";
+    return;
+  }
+
   let output = `Executing: ${stepResult.instruction}\n`;
 
-  // Register değişikliklerini göster
   if (Object.keys(stepResult.changes.registers).length > 0) {
     output += "\nRegister changes:\n";
     for (const [reg, values] of Object.entries(stepResult.changes.registers)) {
-      output += `$${getRegisterName(reg)}: ${values.old} → ${values.new}\n`;
-      // Register tablosunu güncelle
+      const regName = getRegisterName(parseInt(reg));
+      output += `$${regName} (${reg}): ${values.old} → ${values.new}\n`;
       document.querySelector(`#reg_${reg}`).textContent = values.new;
     }
   }
 
-  // Memory değişikliklerini göster
   if (Object.keys(stepResult.changes.memory).length > 0) {
     output += "\nMemory changes:\n";
     for (const [addr, values] of Object.entries(stepResult.changes.memory)) {
       output += `Address 0x${(addr * 4).toString(16).padStart(8, "0")}: ${
         values.old
       } → ${values.new}\n`;
-      // Memory tablosunu güncelle
       document.querySelector(`#DM_${addr}`).textContent = values.new;
     }
   }
@@ -234,5 +222,5 @@ function getRegisterName(index) {
     "fp",
     "ra",
   ];
-  return registerNames[index];
+  return registerNames[index] || `${index}`;
 }

@@ -3,28 +3,29 @@ import * as parser from "./parser.js";
 export class MIPS {
   constructor() {
     this.reg = new Int32Array(32).fill(0);
-    this.IM = new Array(256); // Binary Machine Code
-    this.IM_asm = new Array(256); // Assembly Code
-    this.IM_len = 0; // Code Length
+    this.IM = new Array(256);
+    this.IM_asm = new Array(256);
+    this.IM_len = 0;
     this.DM = new Int32Array(256).fill(0);
-    this.pc = 0; // unsigned
-    this.hi = 0; // signed
-    this.lo = 0; // signed
-    this.instr = null; // Binary Machine Code Instruction
-    this.instr_asm = null; // Assembly Code Instruction
+    this.pc = 0;
+    this.hi = 0;
+    this.lo = 0;
+    this.instr = null;
+    this.instr_asm = null;
     this.opcode = null;
-    this.rs = 0; // unsigned
-    this.rt = 0; // unsigned
-    this.rd = 0; // unsigned
-    this.shamt = 0; // unsigned
+    this.rs = 0;
+    this.rt = 0;
+    this.rd = 0;
+    this.shamt = 0;
     this.funct = null;
-    this.imm = 0; // signed
-    this.target = 0; // unsigned
+    this.imm = 0;
+    this.target = 0;
+    this.labels = {};
   }
 
-  // input: 32bit machine code array in binary format
   setIM(assemblyCode, binMachineCode) {
     this.IM_len = binMachineCode.length;
+    this.labels = parser.collectLabels(assemblyCode);
     for (let i = 0; i < assemblyCode.length; i++) {
       this.IM_asm[i] = assemblyCode[i];
     }
@@ -33,72 +34,76 @@ export class MIPS {
     }
   }
 
-  // Fetch the next instruction from this.IM
   fetch() {
+    if (this.pc >= this.IM_len * 4) {
+      console.log("Program counter (pc) exceeded instruction memory.");
+      return false;
+    }
     this.instr = this.IM[this.pc / 4];
     this.instr_asm = this.IM_asm[this.pc / 4];
-    this.pc += 4;
+    return true;
   }
 
-  // Run the CPU for one cycle
   step() {
-    const prevRegisters = [...this.reg];
-    const prevMemory = [...this.DM];
-
-    this.fetch();
-    if (this.instr !== undefined) {
-      this.parseMachineCode();
-      this.execute();
-
-      // Değişen register ve memory değerlerini bulalım
-      const changes = {
-        registers: {},
-        memory: {},
-      };
-
-      // Register değişikliklerini kontrol et
-      for (let i = 0; i < this.reg.length; i++) {
-        if (this.reg[i] !== prevRegisters[i]) {
-          changes.registers[i] = {
-            old: "0x" + this.toHexString(prevRegisters[i], 8),
-            new: "0x" + this.toHexString(this.reg[i], 8),
-          };
-        }
-      }
-
-      // Memory değişikliklerini kontrol et
-      for (let i = 0; i < this.DM.length; i++) {
-        if (this.DM[i] !== prevMemory[i]) {
-          changes.memory[i] = {
-            old: "0x" + this.toHexString(prevMemory[i], 8),
-            new: "0x" + this.toHexString(this.DM[i], 8),
-          };
-        }
-      }
-
-      return {
-        instruction: this.instr_asm,
-        changes: changes,
-      };
+    if (!this.fetch()) {
+      return null;
     }
-    return null;
-  }
 
-  // Run the CPU for the specified number of cycles
-  run(cycles) {
-    if (cycles > this.IM_len) {
-      this.runUntilEnd();
-    } else {
-      for (let i = 0; i < cycles; i++) {
-        this.step();
+    // Store current state
+    const oldRegisters = [...this.reg];
+    const oldMemory = [...this.DM];
+    const currentInstruction = this.instr_asm;
+    const currentPC = this.pc;
+
+    // Execute instruction
+    this.parseMachineCode();
+    this.execute(currentPC);
+
+    // Track changes
+    const changes = {
+      registers: {},
+      memory: {},
+      pc: this.pcToHex(),
+    };
+
+    // Check register changes
+    for (let i = 0; i < this.reg.length; i++) {
+      if (this.reg[i] !== oldRegisters[i]) {
+        changes.registers[i] = {
+          old: "0x" + oldRegisters[i].toString(16).padStart(8, "0"),
+          new: "0x" + this.reg[i].toString(16).padStart(8, "0"),
+        };
       }
     }
+
+    // Check memory changes
+    for (let i = 0; i < this.DM.length; i++) {
+      if (this.DM[i] !== oldMemory[i]) {
+        changes.memory[i] = {
+          old: "0x" + oldMemory[i].toString(16).padStart(8, "0"),
+          new: "0x" + this.DM[i].toString(16).padStart(8, "0"),
+        };
+      }
+    }
+
+    return {
+      instruction: currentInstruction,
+      changes: changes,
+    };
   }
 
   runUntilEnd() {
-    while (this.pc < this.IM_len * 4) {
-      this.step();
+    let running = true;
+    while (running) {
+      if (!this.fetch()) {
+        running = false;
+        break;
+      }
+      const currentPC = this.pc;
+      this.parseMachineCode();
+      this.execute(currentPC);
     }
+    return this.getState();
   }
 
   parseMachineCode() {
@@ -106,90 +111,96 @@ export class MIPS {
     this.rs = parseInt(this.instr.slice(6, 11), 2);
     this.rt = parseInt(this.instr.slice(11, 16), 2);
     this.rd = parseInt(this.instr.slice(16, 21), 2);
-    this.shamt = parseInt(this.instr.slice(21, 26));
+    this.shamt = parseInt(this.instr.slice(21, 26), 2);
     this.funct = this.instr.slice(26, 32);
-    const parts = parser.parseInstruction(this.instr_asm);
-    this.imm = this.signedInt(parseInt(parts.immediate));
-    this.target = parseInt(this.instr.slice(6, 32), 2) * 4;
-  }
 
-  execute() {
-    switch (this.opcode) {
-      case "000000": // R-type instruction
-        switch (this.funct) {
-          case "100000":
-            this.add();
-            break;
-          case "100010":
-            this.sub();
-            break;
-          case "100100":
-            this.and();
-            break;
-          case "100101":
-            this.or();
-            break;
-          case "101010":
-            this.slt();
-            break;
-          case "001000":
-            this.jr();
-            break;
-          case "000000":
-            this.sll();
-            break;
-          case "000010":
-            this.srl();
-            break;
-          default:
-            throw new Error(`Unsupported function code: ${this.funct}`);
-        }
-        break;
-      case "000100":
-        this.beq();
-        break;
-      case "000101":
-        this.bne();
-        break;
-      case "001000":
-        this.addi();
-        break;
-      case "100011":
-        this.lw();
-        break;
-      case "101011":
-        this.sw();
-        break;
-      case "000010":
-        this.j();
-        break;
-      case "000011":
-        this.jal();
-        break;
-      default:
-        throw new Error(`Unsupported this.opcode: ${this.opcode}`);
+    if (this.opcode === "000000") {
+      this.imm = 0;
+    } else if (this.opcode === "000010" || this.opcode === "000011") {
+      this.target = parseInt(this.instr.slice(6, 32), 2);
+    } else {
+      const immBits = this.instr.slice(16, 32);
+      this.imm = (parseInt(immBits, 2) << 16) >> 16;
     }
   }
 
-  // Yeni metod: Mevcut adım bilgilerini döndürür
-  getCurrentStepInfo() {
-    return {
-      instruction: this.instr_asm,
-      pc: this.pcToHex(),
-      opcode: this.opcode,
-      rs: this.rs,
-      rt: this.rt,
-      rd: this.rd,
-      imm: this.imm,
-      target: this.target,
-      registers: this.regToHex(),
-      memory: this.DMToHex(),
-    };
+  execute(currentPC) {
+    let nextPC = currentPC + 4; // Default next PC value
+
+    switch (this.opcode) {
+      case "000000": // R-type
+        switch (this.funct) {
+          case "100000": // ADD
+            this.add();
+            break;
+          case "100010": // SUB
+            this.sub();
+            break;
+          case "100100": // AND
+            this.and();
+            break;
+          case "100101": // OR
+            this.or();
+            break;
+          case "101010": // SLT
+            this.slt();
+            break;
+          case "001000": // JR
+            nextPC = this.reg[this.rs];
+            break;
+          case "000000": // SLL
+            this.sll();
+            break;
+          case "000010": // SRL
+            this.srl();
+            break;
+        }
+        break;
+
+      case "000100": // BEQ - Fixed implementation
+        if (this.reg[this.rs] === this.reg[this.rt]) {
+          nextPC = currentPC + 4 + (this.imm << 2);
+        }
+        break;
+
+      case "000101": // BNE - Fixed implementation
+        if (this.reg[this.rs] !== this.reg[this.rt]) {
+          nextPC = currentPC + 4 + (this.imm << 2);
+        }
+        break;
+
+      case "001000": // ADDI
+        this.addi();
+        break;
+
+      case "100011": // LW
+        this.lw();
+        break;
+
+      case "101011": // SW
+        this.sw();
+        break;
+
+      case "000010": // J - Fixed implementation
+        nextPC = (currentPC & 0xf0000000) | (this.target << 2);
+        break;
+
+      case "000011": // JAL - Fixed implementation
+        this.reg[31] = currentPC + 8;
+        nextPC = (currentPC & 0xf0000000) | (this.target << 2);
+        break;
+    }
+
+    this.pc = nextPC;
   }
 
-  // R-Type ve diğer desteklenen metodlar burada yer alıyor...
+  // Instruction implementations
   add() {
     this.reg[this.rd] = this.reg[this.rs] + this.reg[this.rt];
+  }
+
+  addi() {
+    this.reg[this.rt] = this.reg[this.rs] + this.imm;
   }
 
   sub() {
@@ -203,16 +214,9 @@ export class MIPS {
   or() {
     this.reg[this.rd] = this.reg[this.rs] | this.reg[this.rt];
   }
-  slt() {
-    if (this.reg[this.rs] < this.reg[this.rt]) {
-      this.reg[this.rd] = 1;
-    } else {
-      this.reg[this.rd] = 0;
-    }
-  }
 
-  jr() {
-    this.pc = this.reg[this.rs] >>> 0; // unsigned
+  slt() {
+    this.reg[this.rd] = this.reg[this.rs] < this.reg[this.rt] ? 1 : 0;
   }
 
   sll() {
@@ -223,95 +227,58 @@ export class MIPS {
     this.reg[this.rd] = this.reg[this.rt] >>> this.shamt;
   }
 
-  beq() {
-    if (this.reg[this.rs] === this.reg[this.rt]) {
-      this.pc = this.imm >>> 0; // unsigned
-    }
-  }
-
-  bne() {
-    if (this.reg[this.rs] !== this.reg[this.rt]) {
-      this.pc = this.imm >>> 0; // unsigned
-    }
-  }
-
-  addi() {
-    this.reg[this.rt] = this.reg[this.rs] + this.imm;
-  }
-
-  andi() {
-    this.reg[this.rt] = this.reg[this.rs] & this.imm;
-  }
-
-  ori() {
-    this.reg[this.rt] = this.reg[this.rs] | this.imm;
-  }
-
-  lui() {
-    const imm16 = this.imm << 16;
-    this.reg[this.rt] = imm16;
-  }
-
   lw() {
     const address = this.reg[this.rs] + this.imm;
-    const data = this.DM[address / 4];
-    this.reg[this.rt] = data;
-  }
-
-  lb() {
-    const byteAddr = this.reg[this.rs] + this.imm;
-    const wordAddr = byteAddr - (byteAddr % 4);
-    const word = this.toBinString(this.DM[wordAddr / 4], 32);
-    const start = 2 * (4 - (byteAddr % 4)) - 2; // byte
-    const end = 2 * (4 - (byteAddr % 4)); // byte
-    const byte = word.slice(start * 4, end * 4);
-    this.reg[this.rt] = this.parseInt32(this.signExtend(byte, 8, 32), 2);
+    this.reg[this.rt] = this.DM[address >> 2];
   }
 
   sw() {
     const address = this.reg[this.rs] + this.imm;
-    this.DM[address / 4] = this.reg[this.rt];
+    this.DM[address >> 2] = this.reg[this.rt];
   }
 
-  sb() {
-    const byteAddr = this.reg[this.rs] + this.imm;
-    const wordAddr = byteAddr - (byteAddr % 4);
-    const word = this.toHexString(this.DM[wordAddr / 4], 8);
-    const start = 2 * (4 - (byteAddr % 4)) - 2; // byte
-    const end = 2 * (4 - (byteAddr % 4)); // byte
-    const result =
-      word.slice(0, start) +
-      this.toHexString(this.reg[this.rt], 8).slice(6, 8) +
-      word.slice(end, 8);
-    this.DM[wordAddr / 4] = this.parseInt32(result, 16);
+  getState() {
+    return {
+      registers: this.regToHex(),
+      memory: this.DMToHex(),
+      pc: this.pcToHex(),
+      hi: this.hiToHex(),
+      lo: this.loToHex(),
+    };
   }
 
-  j() {
-    this.pc = this.target;
-  }
-
-  jal() {
-    this.reg[31] = this.pc;
-    this.pc = this.target;
-  }
-
-  //output functions
   regToHex() {
-    const hexArray = [];
-    for (let i = 0; i < this.reg.length; i++) {
-      const hexString = "0x" + this.toHexString(this.reg[i], 8);
-      hexArray.push(hexString);
-    }
-    return hexArray;
+    return this.reg.map((val) => "0x" + this.toHexString(val, 8));
   }
 
   DMToHex() {
-    const hexArray = [];
-    for (let i = 0; i < this.DM.length; i++) {
-      const hexString = "0x" + this.toHexString(this.DM[i], 8);
-      hexArray.push(hexString);
-    }
-    return hexArray;
+    return Array.from(this.DM).map((val) => "0x" + this.toHexString(val, 8));
+  }
+
+  pcToHex() {
+    return "0x" + this.toHexString(this.pc, 8);
+  }
+
+  hiToHex() {
+    return "0x" + this.toHexString(this.hi, 8);
+  }
+
+  loToHex() {
+    return "0x" + this.toHexString(this.lo, 8);
+  }
+
+  toHexString(num, length) {
+    const hex = (num >>> 0).toString(16).padStart(length, "0");
+    return hex;
+  }
+
+  // Helper methods for output
+  regToHex() {
+    return this.reg.map((val) => "0x" + this.toHexString(val, 8));
+  }
+
+  DMToHex() {
+    return Array.from(this.DM).map((val) => "0x" + this.toHexString(val, 8));
   }
 
   pcToHex() {
@@ -328,80 +295,64 @@ export class MIPS {
 
   // helper functions
   parseInt32(inputStr, radix) {
-    return this.signedInt(parseInt(inputStr, radix));
+    try {
+      return this.signedInt(parseInt(inputStr, radix));
+    } catch (error) {
+      alert(`Error in parseInt32: ${error.message}`);
+    }
   }
 
   signedInt(unsigned) {
-    const uint32Array = new Uint32Array(1);
-    uint32Array[0] = unsigned;
-    const int32Array = new Int32Array(uint32Array.buffer);
-    return int32Array[0];
+    try {
+      const uint32Array = new Uint32Array(1);
+      uint32Array[0] = unsigned;
+      const int32Array = new Int32Array(uint32Array.buffer);
+      return int32Array[0];
+    } catch (error) {
+      alert(`Error in signedInt: ${error.message}`);
+    }
   }
 
   signExtend(inputStr, initialLen, finalLen) {
-    let outputStr = inputStr;
-    const signBit = inputStr.charAt(0);
-    const signExtension = signBit.repeat(finalLen - initialLen);
-    if (initialLen < finalLen) {
-      outputStr = signExtension + inputStr;
-    } else if (initialLen > finalLen) {
-      outputStr = inputStr.slice(initialLen - finalLen);
+    try {
+      let outputStr = inputStr;
+      const signBit = inputStr.charAt(0);
+      const signExtension = signBit.repeat(finalLen - initialLen);
+      if (initialLen < finalLen) {
+        outputStr = signExtension + inputStr;
+      } else if (initialLen > finalLen) {
+        outputStr = inputStr.slice(initialLen - finalLen);
+      }
+      return outputStr;
+    } catch (error) {
+      alert(`Error in signExtend: ${error.message}`);
     }
-    return outputStr;
   }
 
   toHexString(num, hexLen) {
-    // Get the binary string representation of the number in two's complement form
-    const binaryStr = this.toBinString(num, hexLen * 4);
+    try {
+      // Get the binary string representation of the number in two's complement form
+      const binaryStr = this.toBinString(num, hexLen * 4);
 
-    // Convert the binary string to a hexadecimal string
-    const hexStr = parseInt(binaryStr, 2).toString(16);
+      // Convert the binary string to a hexadecimal string
+      const hexStr = parseInt(binaryStr, 2).toString(16);
 
-    // Pad the hexadecimal string with zeros to the desired length
-    return hexStr.padStart(hexLen, "0");
+      // Pad the hexadecimal string with zeros to the desired length
+      return hexStr.padStart(hexLen, "0");
+    } catch (error) {
+      alert(`Error in toHexString: ${error.message}`);
+    }
   }
 
   toBinString(num, binLen) {
-    // Convert num to binary string
-    let binaryStr = Math.abs(num).toString(2);
-
-    // If binaryStr is shorter than binLen, pad with zeros to the left
-    binaryStr = binaryStr.padStart(binLen, "0");
-
-    // If num is negative, take the two's complement
-    if (num < 0) {
-      binaryStr = this.twosComplement(binaryStr, binLen);
-    }
-
-    // Return binary string
-    return binaryStr;
-  }
-
-  twosComplement(binaryStr, length) {
-    // Pad the binary string with zeros on the left to the given length
-    const paddedStr = binaryStr.padStart(length, "0");
-
-    // Invert all bits
-    const invertedStr = paddedStr
-      .split("")
-      .map((bit) => (bit === "0" ? "1" : "0"))
-      .join("");
-
-    // Add 1 to the inverted value
-    let carry = 1;
-    let result = "";
-    for (let i = invertedStr.length - 1; i >= 0; i--) {
-      const sum = parseInt(invertedStr[i]) + carry;
-      if (sum === 2) {
-        result = "0" + result;
-        carry = 1;
-      } else {
-        result = sum.toString() + result;
-        carry = 0;
+    try {
+      let binaryStr = num.toString(2); // Convert to binary
+      while (binaryStr.length < binLen) {
+        binaryStr = "0" + binaryStr;
       }
+      return binaryStr;
+    } catch (error) {
+      alert(`Error in toBinString: ${error.message}`);
     }
-
-    // Pad the result with zeros on the left to the given length
-    return result;
   }
 }
