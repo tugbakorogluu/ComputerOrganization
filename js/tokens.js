@@ -63,6 +63,10 @@ export const RTypeInstructions = {
     opcode: "000000",
     funct: "000010",
   },
+  jr: {
+    opcode: "000000",
+    funct: "001000",
+  },
 };
 
 export const ITypeInstructions = {
@@ -92,8 +96,5 @@ export const JTypeInstructions = {
   jal: {
     opcode: "000011",
   },
-  jr: {
-    opcode: "000000",
-    funct: "001000",
-  },
+  
 };

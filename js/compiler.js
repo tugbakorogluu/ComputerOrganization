@@ -49,7 +49,7 @@ function compileInstruction(instruction) {
     } else if (tokens.JTypeInstructions.hasOwnProperty(opcode)) {
       return compileJTypeInstruction(instruction);
     } else {
-      alert(`Unknown opcode: ${opcode}`);
+      alert(`Unknown opcode : ${opcode}`);
       return null;  // Return null if opcode is unknown
     }
   } catch (error) {
@@ -59,7 +59,7 @@ function compileInstruction(instruction) {
 }
 
 function compileRTypeInstruction(instruction) {
-  try {
+  
     const parts = parser.parseInstruction(instruction);
 
     if (!parts) {
@@ -111,14 +111,13 @@ function compileRTypeInstruction(instruction) {
       alert("Unknown R-Type category.");
       return null;  // Return null for unknown categories
     }
-  } catch (error) {
-    alert(`R-Type instruction error: ${error.message}`);
-    return null;  // Ensure function does not continue in case of error
+  
+    
   }
-}
+
 
 function compileITypeInstruction(instruction) {
-  try {
+  
     const parts = parser.parseInstruction(instruction);
 
     if (!parts) {
@@ -139,22 +138,20 @@ function compileITypeInstruction(instruction) {
         tokens.registers[rt] +
         convertImmediateToBinary(immediate, 16);
     }
-  } catch (error) {
-    alert(`I-Type instruction error: ${error.message}`);
-    return null;  // Return null if error occurs
+  
+    
   }
-}
+
 
 function compileJTypeInstruction(instruction) {
-  try {
+  
     const { opcode, target } = parser.parseInstruction(instruction);
     return tokens.JTypeInstructions[opcode].opcode +
       convertImmediateToBinary(target, 26);
-  } catch (error) {
-    alert(`J-Type instruction error: ${error.message}`);
-    return null;  // Return null if error occurs
+  
+    
   }
-}
+
 
 function convertImmediateToBinary(immediate, length) {
   try {

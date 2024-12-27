@@ -18,28 +18,28 @@ function displayMachineCode(machineCode) {
 
 convertToBinButton.addEventListener("click", () => {
   const assemblyCode = editor.value.split("\n").map(line => line.trim()); // Trim whitespaces
-  try {
-    if (assemblyCode.length === 0 || assemblyCode.every(line => line === "")) {
-      alert("Error: No code provided!");  // Show error message in alert
-      return;
-    }
-    const machineCode = compileToBin(assemblyCode);
-    displayMachineCode(machineCode);
-  } catch (error) {
-    alert(`Error: ${error.message}`);  // Show error message in alert
+
+  if (assemblyCode.length === 0 || assemblyCode.every(line => line === "")) {
+    alert("Error: No code provided!");  // Show error message in alert
+    return;
   }
-});
+  const machineCode = compileToBin(assemblyCode);
+  displayMachineCode(machineCode);
+
+
+}
+);
 
 convertToHexButton.addEventListener("click", () => {
   const assemblyCode = editor.value.split("\n").map(line => line.trim()); // Trim whitespaces
-  try {
-    if (assemblyCode.length === 0 || assemblyCode.every(line => line === "")) {
-      alert("Error: No code provided!");  // Show error message in alert
-      return;
-    }
-    const machineCode = compileToHex(assemblyCode);
-    displayMachineCode(machineCode);
-  } catch (error) {
-    alert(`Error: ${error.message}`);  // Show error message in alert
+
+  if (assemblyCode.length === 0 || assemblyCode.every(line => line === "")) {
+    alert("Error: No code provided!");  // Show error message in alert
+    return;
   }
-});
+  const machineCode = compileToHex(assemblyCode);
+  displayMachineCode(machineCode);
+
+
+}
+);

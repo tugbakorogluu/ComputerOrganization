@@ -301,14 +301,14 @@ export class MIPS {
     }
 }
 
-bne() {
-  try {
-    if (this.reg[this.rs] !== this.reg[this.rt]) {
-      this.pc += this.imm;
+  bne() {
+    try {
+      if (this.reg[this.rs] !== this.reg[this.rt]) {
+        this.pc += this.imm;
+      }
+    } catch (error) {
+      alert(`Error in bne: ${error.message}`);
     }
-  } catch (error) {
-    alert(`Error in bne: ${error.message}`);
-  }
 }
 
   addi() {

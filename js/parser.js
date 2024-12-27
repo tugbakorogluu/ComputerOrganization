@@ -1,7 +1,7 @@
 import * as tokens from "./tokens.js";
 
 export function parseInstruction(instruction) {
-  try {
+  
     const [opcode, ...args] = instruction.trim().split(/\s+/);
 
     const rTypeInstruction = parseRtype(instruction);
@@ -23,17 +23,15 @@ export function parseInstruction(instruction) {
     } else {
       throw new Error(`Invalid instruction: ${instruction}`);
     }
-  } catch (error) {
+  
     // Hata mesajını console'a yazdır ve kullanıcıya bildirim yap
-    console.error(`Error in parseInstruction: ${error.message}`);
-    alert(`Hata: ${error.message}`);  // Hata mesajını alert ile göster
-    return null;  // Hata durumunda null döndürebiliriz
+   
   }
-}
+
 
 
 function parseRtype(instruction) {
-  try {
+  
     const rTypeRegex = /^(\w+)\s+\$(\w+),\s*\$(\w+),\s*\$(\w+)$/i;
     const shiftRegex = /^(\w+)\s+\$(\w+),\s*\$(\w+),\s*(\d+|0x[\da-fA-F]+)$/i;
     const jumpRegex = /^jr\s+\$(\w+)$/i;
@@ -60,14 +58,10 @@ function parseRtype(instruction) {
     } else {
       return null;
     }
-  } catch (error) {
-    alert(`Error in parseRtype: ${error.message}`);
-    throw error;
-  }
-}
+  } 
 
 function parseItype(instruction) {
-  try {
+  
     const itypeRegex =
       /^(\w+)\s+\$(\w+),\s*\$(\w+),\s*(-?\d+|0x[\da-fA-F]+|0b[01]+)$/i;
     const loadStoreRegex =
@@ -101,14 +95,10 @@ function parseItype(instruction) {
     } else {
       return null;
     }
-  } catch (error) {
-    alert(`Error in parseItype: ${error.message}`);
-    throw error;
   }
-}
 
 function parseJtype(instruction) {
-  try {
+ 
     const jTypeRegex = /^(\w+)\s+(\d+|0x[\da-fA-F]+|0b[01]+)$/i;
 
     const jTypeMatches = instruction.match(jTypeRegex);
@@ -119,8 +109,5 @@ function parseJtype(instruction) {
     } else {
       return null;
     }
-  } catch (error) {
-    alert(`Error in parseJtype: ${error.message}`);
-    throw error;
+  
   }
-}
