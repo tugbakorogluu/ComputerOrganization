@@ -31,13 +31,13 @@ In summary, Project I presents a 32-bit MIPS Simulator with a user-friendly GUI 
 
 ## Requirements
 
-- **Programming Language:** Proje JavaScript kullanılarak geliştirilmiştir.
-- **!!!!!GUI Framework:** Electron ve HTML/CSS kullanılmıştır.!!!!!!!!
+- **Programming Language:** The project was developed using JavaScript.
+- **GUI Framework:** Bootstrap and HTML/CSS were used.
 - **Operating Environment:** It can run on Windows, Linux and macOS, regardless of platform.
 
 ---
 
-## Kurulum ve Çalıştırma
+## Installation and Operation
 
 1. Clone the repository:
 
