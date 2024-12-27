@@ -1,6 +1,7 @@
 import * as parser from './parser.js';
 import * as tokens from './tokens.js';
 
+// Function to compile assembly code into hexadecimal machine code
 export function compileToHex(assemblyCode) {
   const machineCode = [];
   assemblyCode.forEach(instruction => {
@@ -14,12 +15,13 @@ export function compileToHex(assemblyCode) {
         }
       }
     } catch (error) {
+      // Alert the user about errors in the instruction
       alert(`Error in instruction: "${instruction}". ${error.message}`);
     }
   });
   return machineCode;
 }
-
+// Function to compile assembly code into binary machine code
 export function compileToBin(assemblyCode) {
   const machineCode = [];
   assemblyCode.forEach(instruction => {
@@ -32,16 +34,18 @@ export function compileToBin(assemblyCode) {
         }
       }
     } catch (error) {
+      // Alert the user about errors in the instruction
       alert(`Error in instruction: "${instruction}". ${error.message}`);
     }
   });
   return machineCode;
 }
-
+// Function to compile a single instruction
 function compileInstruction(instruction) {
   try {
+    // Split the instruction into opcode and arguments
     const [opcode, ...args] = instruction.trim().split(/\s+/);
-
+     // Check the type of instruction (R, I, or J) and compile accordingly
     if (tokens.RTypeInstructions.hasOwnProperty(opcode)) {
       return compileRTypeInstruction(instruction);
     } else if (tokens.ITypeInstructions.hasOwnProperty(opcode)) {
@@ -49,6 +53,7 @@ function compileInstruction(instruction) {
     } else if (tokens.JTypeInstructions.hasOwnProperty(opcode)) {
       return compileJTypeInstruction(instruction);
     } else {
+      // Alert if the opcode is unknown
       alert(`Unknown opcode : ${opcode}`);
       return null;  // Return null if opcode is unknown
     }
@@ -57,7 +62,7 @@ function compileInstruction(instruction) {
     return null;  // Ensure function does not continue in case of error
   }
 }
-
+// Function to compile R-Type instructions
 function compileRTypeInstruction(instruction) {
   
     const parts = parser.parseInstruction(instruction);
@@ -66,7 +71,7 @@ function compileRTypeInstruction(instruction) {
       alert("Failed to parse instruction.");
       return null;  // Return null if parsing fails
     }
-
+    // Compile based on the category of R-Type instruction
     if (parts.category === "Register") {
       const { opcode, rd, rs, rt } = parts;
       return tokens.RTypeInstructions[opcode].opcode +
@@ -115,7 +120,7 @@ function compileRTypeInstruction(instruction) {
     
   }
 
-
+// Function to compile I-Type instructions
 function compileITypeInstruction(instruction) {
   
     const parts = parser.parseInstruction(instruction);
@@ -124,7 +129,7 @@ function compileITypeInstruction(instruction) {
       alert("Failed to parse instruction.");
       return null;  // Return null if parsing fails
     }
-
+    // Compile based on the category of I-Type instruction
     if (parts.category === "LoadUpperImmediate") {
       const { opcode, rt, immediate } = parts;
       return tokens.ITypeInstructions[opcode].opcode +
@@ -142,7 +147,7 @@ function compileITypeInstruction(instruction) {
     
   }
 
-
+// Function to compile J-Type instructions
 function compileJTypeInstruction(instruction) {
   
     const { opcode, target } = parser.parseInstruction(instruction);
@@ -152,7 +157,7 @@ function compileJTypeInstruction(instruction) {
     
   }
 
-
+// Helper function to convert an immediate value into binary representation
 function convertImmediateToBinary(immediate, length) {
   try {
     let binary;
@@ -170,14 +175,14 @@ function convertImmediateToBinary(immediate, length) {
       alert(`Binary value ${binary} exceeds the provided length of ${length}.`);
       return null;  // Return null to avoid overflow or incorrect output
     }
-
+    // Pad the binary value to the specified length
     return binary.padStart(length, '0');
   } catch (error) {
     alert(`Immediate conversion error: ${error.message}`);
     return null;  // Return null in case of conversion error
   }
 }
-
+// Helper function to remove comments and extra whitespace from an instruction
 function removeCommentsAndWhitespace(instruction) {
   try {
     const trimmedInstruction = instruction.split('#')[0].trim();

@@ -1,9 +1,10 @@
 import * as compiler from "./js/compiler.js";
 import * as MIPS from "./js/MIPS.js";
-
+// Initialize the simulator when the page is loaded
 function init() {
   initializeDMTable();
   initializeIMTable();
+  // Add event listeners for buttons
   const runBtn = document.querySelector("#run-btn");
   const stepBtn = document.querySelector("#step-btn");
   const resetBtn = document.querySelector("#reset-btn");
@@ -16,9 +17,9 @@ function init() {
     resetDisplay();
   });
 }
-
+// Run the initialization function when the window is loaded
 window.addEventListener("load", init);
-
+// Function to initialize the Data Memory (DM) table
 function initializeDMTable() {
   const DM_tableBody = document.querySelector("#data-memory-table tbody");
 
@@ -41,7 +42,7 @@ function initializeDMTable() {
     DM_tableBody.appendChild(row);
   }
 }
-
+// Function to initialize the Instruction Memory (IM) table
 function initializeIMTable() {
   const IM_tableBody = document.querySelector(
     "#instruction-memory-table tbody"
@@ -66,7 +67,7 @@ function initializeIMTable() {
     IM_tableBody.appendChild(row);
   }
 }
-
+// Function to run the program
 function run() {
   // Get assembly code from textarea
   const textarea = document.querySelector("#editor");
@@ -116,7 +117,6 @@ function updateElement(val, ID) {
   codeElement.textContent = val;
 }
 
-// Yeni kodlar başlıyor
 let mips = null;
 let currentInstructionIndex = 0;
 
@@ -139,19 +139,19 @@ function initializeSimulator() {
   mips.setIM(assemblyCode, binMachineCode);
   currentInstructionIndex = 0;
 
-  // Tüm değerleri sıfırla
+  //Reset all values
   resetDisplay();
 }
 
 function resetDisplay() {
-  // Register ve memory değerlerini sıfırla
+  //Reset register and memory values
   updateTable(new Array(32).fill("00000000"), "#reg_", "0x");
   updateTable(new Array(256).fill("00000000"), "#DM_", "0x");
   updateElement("0x00000000", "#pc");
   updateElement("0x00000000", "#hi");
   updateElement("0x00000000", "#lo");
 
-  // Step output'u temizle
+  // Clear step output
   document.getElementById("step-output").textContent = "";
 }
 
@@ -174,31 +174,31 @@ function displayStepInfo(stepResult) {
   const stepOutput = document.getElementById("step-output");
   let output = `Executing: ${stepResult.instruction}\n`;
 
-  // Register değişikliklerini göster
+// Show register changes
   if (Object.keys(stepResult.changes.registers).length > 0) {
     output += "\nRegister changes:\n";
     for (const [reg, values] of Object.entries(stepResult.changes.registers)) {
       output += `$${getRegisterName(reg)}: ${values.old} → ${values.new}\n`;
-      // Register tablosunu güncelle
+      // Update register table
       document.querySelector(`#reg_${reg}`).textContent = values.new;
     }
   }
 
-  // Memory değişikliklerini göster
+  // Show memory changes
   if (Object.keys(stepResult.changes.memory).length > 0) {
     output += "\nMemory changes:\n";
     for (const [addr, values] of Object.entries(stepResult.changes.memory)) {
       output += `Address 0x${(addr * 4).toString(16).padStart(8, "0")}: ${
         values.old
       } → ${values.new}\n`;
-      // Memory tablosunu güncelle
+      // Update Memory table
       document.querySelector(`#DM_${addr}`).textContent = values.new;
     }
   }
 
   stepOutput.textContent = output;
 }
-
+// Function to map register index to its name
 function getRegisterName(index) {
   const registerNames = [
     "zero",

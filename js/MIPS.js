@@ -59,13 +59,13 @@ export class MIPS {
         this.parseMachineCode();
         this.execute();
 
-        // Değişen register ve memory değerlerini bulalım
+        // Let's find the changed register and memory values
         const changes = {
           registers: {},
           memory: {},
         };
 
-        // Register değişikliklerini kontrol et
+        // Check register changes
         for (let i = 0; i < this.reg.length; i++) {
           if (this.reg[i] !== prevRegisters[i]) {
             changes.registers[i] = {
@@ -75,7 +75,7 @@ export class MIPS {
           }
         }
 
-        // Memory değişikliklerini kontrol et
+        // Check memory changes
         for (let i = 0; i < this.DM.length; i++) {
           if (this.DM[i] !== prevMemory[i]) {
             changes.memory[i] = {
@@ -199,7 +199,7 @@ export class MIPS {
     }
   }
 
-  // Yeni metod: Mevcut adım bilgilerini döndürür
+  // New method: Returns current step information
   getCurrentStepInfo() {
     try {
       return {
@@ -219,7 +219,7 @@ export class MIPS {
     }
   }
 
-  // R-Type ve diğer desteklenen metodlar burada yer alıyor...
+  // R-Type and other supported methods are included here
   add() {
     try {
       this.reg[this.rd] = this.reg[this.rs] + this.reg[this.rt];
@@ -291,9 +291,9 @@ export class MIPS {
   beq() {
     try {
         if (this.reg[this.rs] === this.reg[this.rt]) {
-            // PC zaten instruction'ı fetch ettikten sonra 4 artmış durumda
-            // Offset'i 4 ile çarp (byte address'e çevirmek için)
-            // Ve current PC'ye ekle
+            // PC has already increased by 4 after fetching the instruction
+            // Multiply offset by 4 (to convert to byte address)
+            // And add to current PC
             this.pc = (this.pc + (this.imm << 2)) >>> 0;
         }
     } catch (error) {

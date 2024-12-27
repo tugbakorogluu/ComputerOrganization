@@ -71,7 +71,7 @@ button:hover {
     position: relative;
 }
 
-/* Tablo başlığı stili */
+/* Table header style */
 #registers thead th {
     position: sticky;
     top: 0;
