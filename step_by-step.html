@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MIPS Stepper</title>
+  <style>
+    /* Temel CSS kuralları */
+    .p-4 {
+      padding: 16px;
+    }
+    .space-y-4 > * + * {
+      margin-top: 16px;
+    }
+    .space-x-4 > * + * {
+      margin-left: 16px;
+    }
+    .grid {
+      display: grid;
+    }
+    .grid-cols-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .grid-cols-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .gap-4 {
+      gap: 16px;
+    }
+    .gap-2 {
+      gap: 8px;
+    }
+    .h-64 {
+      height: 16rem;
+    }
+    .overflow-y-auto {
+      overflow-y: auto;
+    }
+    .p-2 {
+      padding: 8px;
+    }
+    .border {
+      border: 1px solid #ccc;
+    }
+    .rounded {
+      border-radius: 4px;
+    }
+    .bg-blue-500 {
+      background-color: #3b82f6;
+    }
+    .bg-gray-500 {
+      background-color: #6b7280;
+    }
+    .bg-blue-100 {
+      background-color: #dbeafe;
+    }
+    .text-white {
+      color: white;
+    }
+    .button {
+      display: inline-block;
+      text-align: center;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="p-4 space-y-4">
+    <div class="flex space-x-4">
+      <button id="stepButton" class="px-4 py-2 bg-blue-500 text-white rounded">Step</button>
+      <button id="resetButton" class="px-4 py-2 bg-gray-500 text-white rounded">Reset</button>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Registers</h2>
+        </div>
+        <div class="card-content">
+          <div id="registers" class="grid grid-cols-4 gap-2"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Memory</h2>
+        </div>
+        <div class="card-content">
+          <div id="memory" class="h-64 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <div class="card col-span-2">
+        <div class="card-header">
+          <h2 class="card-title">Instructions</h2>
+        </div>
+        <div class="card-content">
+          <div id="instructions" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/step_by_step.js"></script>
+</body>
+</html>
