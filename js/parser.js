@@ -67,10 +67,12 @@ function parseItype(instruction) {
     const loadStoreRegex =
       /^(\w+)\s+\$(\w+),\s*(-?\d+|0x[\da-fA-F]+|0b[01]+)\((\$\w+)\)$/i;
     const luiRegex = /^lui\s+\$(\w+),\s*(-?\d+|0x[\da-fA-F]+|0b[01]+)$/i;
+    const branchRegex = /^(beq|bne)\s+\$(\w+),\s*\$(\w+),\s*(\w+)$/i;
 
     const itypeMatches = instruction.match(itypeRegex);
     const loadStoreMatches = instruction.match(loadStoreRegex);
     const luiMatches = instruction.match(luiRegex);
+    const branchMatches = instruction.match(branchRegex);
 
     if (itypeMatches) {
       const [_, opcode, rt, rs, immediate] = itypeMatches;
@@ -91,6 +93,15 @@ function parseItype(instruction) {
         opcode: "lui",
         rt: "$" + rt,
         immediate,
+      };
+    } else if (branchMatches) {
+      const [_, opcode, rs, rt, label] = branchMatches;
+      return {
+        category: "Branch",
+        opcode,
+        rs: "$" + rs,
+        rt: "$" + rt,
+        label: label.trim()
       };
     } else {
       return null;

@@ -20,12 +20,23 @@ export class MIPS {
     this.funct = null;
     this.imm = 0; // signed
     this.target = 0; // unsigned
+    this.labels = new Map(); // Etiketleri ve konumlarını tutacak
+    this.skipNextInstruction = false; // beq için kontrol
   }
 
   // input: 32bit machine code array in binary format
   setIM(assemblyCode, binMachineCode) {
     try {
       this.IM_len = binMachineCode.length;
+      
+      // Etiketleri topla
+      assemblyCode.forEach((instruction, index) => {
+        if (instruction.includes(':')) {
+          const label = instruction.split(':')[0].trim();
+          this.labels.set(label, index);
+        }
+      });
+
       for (let i = 0; i < assemblyCode.length; i++) {
         this.IM_asm[i] = assemblyCode[i];
       }
@@ -57,7 +68,19 @@ export class MIPS {
       this.fetch();
       if (this.instr !== undefined) {
         this.parseMachineCode();
-        this.execute();
+        const jumped = this.execute(); // execute'dan dönüş değerini al
+
+        // Eğer beq ile bir label'a atladıysak, yeni konumdan devam et
+        if (jumped) {
+          return {
+            instruction: this.instr_asm,
+            changes: {
+              registers: {},
+              memory: {},
+            },
+            jumped: true
+          };
+        }
 
         // Let's find the changed register and memory values
         const changes = {
@@ -88,6 +111,7 @@ export class MIPS {
         return {
           instruction: this.instr_asm,
           changes: changes,
+          jumped: false
         };
       }
       return null;
@@ -169,33 +193,32 @@ export class MIPS {
             default:
               throw new Error(`Unsupported function code: ${this.funct}`);
           }
-          break;
+          return false;
         case "000100":
-          this.beq();
-          break;
+          return this.beq();
         case "000101":
-          this.bne();
-          break;
+          return this.bne();
         case "001000":
           this.addi();
-          break;
+          return false;
         case "100011":
           this.lw();
-          break;
+          return false;
         case "101011":
           this.sw();
-          break;
+          return false;
         case "000010":
           this.j();
-          break;
+          return false;
         case "000011":
           this.jal();
-          break;
+          return false;
         default:
           throw new Error(`Unsupported opcode: ${this.opcode}`);
       }
     } catch (error) {
       alert(`Error in execute: ${error.message}`);
+      return false;
     }
   }
 
@@ -290,26 +313,73 @@ export class MIPS {
 
   beq() {
     try {
-        if (this.reg[this.rs] === this.reg[this.rt]) {
-            // PC has already increased by 4 after fetching the instruction
-            // Multiply offset by 4 (to convert to byte address)
-            // And add to current PC
-            this.pc = (this.pc + (this.imm << 2)) >>> 0;
+      if (this.reg[this.rs] === this.reg[this.rt]) {
+        // Label'ı bul
+        const parts = parser.parseInstruction(this.instr_asm);
+        const targetLabel = parts.label;
+        
+        if (this.labels.has(targetLabel)) {
+          // Label'ın konumuna atla ve devam et
+          const targetIndex = this.labels.get(targetLabel);
+          this.pc = targetIndex * 4;
+          // PC'yi güncelle ama programı sonlandırma
+          return true; // Label'a atladığımızı belirt
+        } else {
+          throw new Error(`Label not found: ${targetLabel}`);
         }
+      }
+      return false; // Normal akışa devam et
     } catch (error) {
-        alert(`Error in beq: ${error.message}`);
+      alert(`Error in beq: ${error.message}`);
+      return false;
     }
+  }
+  
+
+// Yardımcı fonksiyon: Offset değerine karşılık gelen label'ı bul
+findLabelByOffset(offset) {
+    // Program içindeki tüm etiketleri ve konumlarını tutan bir harita
+    const labelMap = this.program.reduce((map, instruction, index) => {
+        if (instruction.label) {
+            map[instruction.label] = index;
+        }
+        return map;
+    }, {});
+    
+    // Offset değerine göre hedef etiketi bul
+    const targetIndex = (this.pc >>> 2) + offset;
+    
+    for (const [label, position] of Object.entries(labelMap)) {
+        if (position === targetIndex) {
+            return label;
+        }
+    }
+    
+    return null;
 }
 
   bne() {
     try {
-      if (this.reg[this.rs] !== this.reg[this.rt]) {
-        this.pc += this.imm;
-      }
+        if (this.reg[this.rs] !== this.reg[this.rt]) {
+            // Label'ı bul
+            const parts = parser.parseInstruction(this.instr_asm);
+            const targetLabel = parts.label;
+            
+            if (this.labels.has(targetLabel)) {
+                // Label'ın konumuna atla
+                const targetIndex = this.labels.get(targetLabel);
+                this.pc = targetIndex * 4;
+                return true; // Label'a atladığımızı belirt
+            } else {
+                throw new Error(`Label not found: ${targetLabel}`);
+            }
+        }
+        return false; // Normal akışa devam et
     } catch (error) {
-      alert(`Error in bne: ${error.message}`);
+        alert(`Error in bne: ${error.message}`);
+        return false;
     }
-}
+  }
 
   addi() {
     try {
