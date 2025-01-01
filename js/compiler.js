@@ -149,13 +149,15 @@ function compileITypeInstruction(instruction) {
 
 // Function to compile J-Type instructions
 function compileJTypeInstruction(instruction) {
-  
-    const { opcode, target } = parser.parseInstruction(instruction);
-    return tokens.JTypeInstructions[opcode].opcode +
-      convertImmediateToBinary(target, 26);
-  
+    const parts = parser.parseInstruction(instruction);
     
-  }
+    if (!parts || !parts.label) {
+        throw new Error("Invalid J-type instruction format");
+    }
+
+    return tokens.JTypeInstructions[parts.opcode].opcode +
+           "00".repeat(13); // 26 bit için geçici doldurma
+}
 
 // Helper function to convert an immediate value into binary representation
 function convertImmediateToBinary(immediate, length) {

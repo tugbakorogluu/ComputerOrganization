@@ -20,14 +20,45 @@ export class MIPS {
     this.funct = null;
     this.imm = 0; // signed
     this.target = 0; // unsigned
+    this.labels = new Map(); // Etiketleri ve konumlarını tutacak
+    this.labelPositions = new Map(); // Yeni eklenen map
+    this.skipNextInstruction = false; // beq için kontrol
+    this.jrExecuted = false;  // jr komutunun çalışıp çalışmadığını kontrol etmek için
   }
 
   // input: 32bit machine code array in binary format
   setIM(assemblyCode, binMachineCode) {
     try {
       this.IM_len = binMachineCode.length;
-      for (let i = 0; i < assemblyCode.length; i++) {
-        this.IM_asm[i] = assemblyCode[i];
+      
+      // Önce assembly kodunu işle ve label pozisyonlarını belirle
+      let cleanedCode = [];
+      let currentIndex = 0;
+      
+      assemblyCode.forEach((line) => {
+        const labelMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*):(.*)$/);
+        if (labelMatch) {
+          const label = labelMatch[1].trim();
+          this.labels.set(label, currentIndex);
+          
+          // Label'dan sonraki komutu da ekle
+          const remainingInstruction = labelMatch[2].trim();
+          if (remainingInstruction) {
+            cleanedCode.push(remainingInstruction);
+            currentIndex++;
+          }
+        } else if (line.trim()) {
+          cleanedCode.push(line);
+          currentIndex++;
+        }
+      });
+
+      // Label pozisyonlarını kaydet
+      this.collectLabels(assemblyCode);
+      
+      // Temizlenmiş kodları yerleştir
+      for (let i = 0; i < cleanedCode.length; i++) {
+        this.IM_asm[i] = cleanedCode[i];
       }
       for (let i = 0; i < binMachineCode.length; i++) {
         this.IM[i] = binMachineCode[i];
@@ -35,6 +66,30 @@ export class MIPS {
     } catch (error) {
       alert(`Error in setIM: ${error.message}`);
     }
+  }
+
+  // Yeni metod: Etiketleri toplama
+  collectLabels(assemblyCode) {
+    this.labels.clear();
+    this.labelPositions.clear();
+    
+    let currentPosition = 0;
+    assemblyCode.forEach((instruction) => {
+      // Label tanımını bul
+      const labelMatch = instruction.match(/^([a-zA-Z_][a-zA-Z0-9_]*):(.*)$/);
+      if (labelMatch) {
+        const label = labelMatch[1].trim();
+        this.labelPositions.set(label, currentPosition);
+        
+        // Eğer label'dan sonra komut varsa onu da işle
+        const remainingInstruction = labelMatch[2].trim();
+        if (remainingInstruction) {
+          currentPosition++;
+        }
+      } else if (instruction.trim()) {
+        currentPosition++;
+      }
+    });
   }
 
   // Fetch the next instruction from this.IM
@@ -57,7 +112,19 @@ export class MIPS {
       this.fetch();
       if (this.instr !== undefined) {
         this.parseMachineCode();
-        this.execute();
+        const jumped = this.execute(); // execute'dan dönüş değerini al
+
+        // Eğer beq ile bir label'a atladıysak, yeni konumdan devam et
+        if (jumped) {
+          return {
+            instruction: this.instr_asm,
+            changes: {
+              registers: {},
+              memory: {},
+            },
+            jumped: true
+          };
+        }
 
         // Let's find the changed register and memory values
         const changes = {
@@ -88,6 +155,7 @@ export class MIPS {
         return {
           instruction: this.instr_asm,
           changes: changes,
+          jumped: false
         };
       }
       return null;
@@ -127,10 +195,20 @@ export class MIPS {
       this.rs = parseInt(this.instr.slice(6, 11), 2);
       this.rt = parseInt(this.instr.slice(11, 16), 2);
       this.rd = parseInt(this.instr.slice(16, 21), 2);
-      this.shamt = parseInt(this.instr.slice(21, 26));
+      this.shamt = parseInt(this.instr.slice(21, 26), 2);
       this.funct = this.instr.slice(26, 32);
+
+      // Immediate değer için assembly kodunu parse et
       const parts = parser.parseInstruction(this.instr_asm);
-      this.imm = this.signedInt(parseInt(parts.immediate));
+      if (parts && parts.immediate) {
+        // Immediate değeri doğrudan parts.immediate'den al
+        this.imm = parseInt(parts.immediate);
+      } else {
+        // Eğer immediate değer binary'den geliyorsa
+        const immBinary = this.instr.slice(16, 32);
+        this.imm = this.signedInt(parseInt(immBinary, 2));
+      }
+      
       this.target = parseInt(this.instr.slice(6, 32), 2) * 4;
     } catch (error) {
       alert(`Error in parseMachineCode: ${error.message}`);
@@ -169,33 +247,31 @@ export class MIPS {
             default:
               throw new Error(`Unsupported function code: ${this.funct}`);
           }
-          break;
+          return false;
         case "000100":
-          this.beq();
-          break;
+          return this.beq();
         case "000101":
-          this.bne();
-          break;
+          return this.bne();
         case "001000":
           this.addi();
-          break;
+          return false;
         case "100011":
           this.lw();
-          break;
+          return false;
         case "101011":
           this.sw();
-          break;
+          return false;
         case "000010":
-          this.j();
-          break;
+          return this.j();
         case "000011":
           this.jal();
-          break;
+          return false;
         default:
           throw new Error(`Unsupported opcode: ${this.opcode}`);
       }
     } catch (error) {
       alert(`Error in execute: ${error.message}`);
+      return false;
     }
   }
 
@@ -266,9 +342,28 @@ export class MIPS {
 
   jr() {
     try {
-      this.pc = this.reg[this.rs] >>> 0; // unsigned
+        // Eğer jr daha önce çalıştıysa, normal akışa devam et
+        if (this.jrExecuted) {
+            return false;  // Normal akışa devam et
+        }
+
+        // rs register'ındaki adrese atla
+        const jumpAddress = this.reg[this.rs];
+        
+        // Adresin 4'ün katı olduğundan emin ol
+        if (jumpAddress % 4 !== 0) {
+            throw new Error('Geçersiz atlama adresi: Adres 4\'ün katı olmalı');
+        }
+        
+        // jr komutunun çalıştığını işaretle
+        this.jrExecuted = true;
+        
+        // PC'yi güncelle (4 çıkarmadan)
+        this.pc = jumpAddress;
+        return true;
     } catch (error) {
-      alert(`Error in jr: ${error.message}`);
+        alert(`jr komutunda hata: ${error.message}`);
+        return false;
     }
   }
 
@@ -291,29 +386,55 @@ export class MIPS {
   beq() {
     try {
         if (this.reg[this.rs] === this.reg[this.rt]) {
-            // PC has already increased by 4 after fetching the instruction
-            // Multiply offset by 4 (to convert to byte address)
-            // And add to current PC
-            this.pc = (this.pc + (this.imm << 2)) >>> 0;
+            const parts = parser.parseInstruction(this.instr_asm);
+            const targetLabel = parts.label;
+            
+            if (!this.labelPositions.has(targetLabel)) {
+                throw new Error(`Label bulunamadı: ${targetLabel}`);
+            }
+            
+            // Label pozisyonuna göre PC'yi ayarla
+            const targetPosition = this.labelPositions.get(targetLabel);
+            this.pc = targetPosition * 4;
+            return true;
         }
+        return false;
     } catch (error) {
-        alert(`Error in beq: ${error.message}`);
+        alert(`beq komutunda hata: ${error.message}`);
+        return false;
     }
-}
+  }
 
   bne() {
     try {
-      if (this.reg[this.rs] !== this.reg[this.rt]) {
-        this.pc += this.imm;
-      }
+        if (this.reg[this.rs] !== this.reg[this.rt]) {
+            const parts = parser.parseInstruction(this.instr_asm);
+            const targetLabel = parts.label;
+            
+            if (!this.labelPositions.has(targetLabel)) {
+                throw new Error(`Label bulunamadı: ${targetLabel}`);
+            }
+            
+            // Label pozisyonuna göre PC'yi ayarla
+            const targetPosition = this.labelPositions.get(targetLabel);
+            this.pc = targetPosition * 4;
+            return true;
+        }
+        return false;
     } catch (error) {
-      alert(`Error in bne: ${error.message}`);
+        alert(`bne komutunda hata: ${error.message}`);
+        return false;
     }
-}
+  }
 
   addi() {
     try {
-      this.reg[this.rt] = this.reg[this.rs] + this.imm;
+      // rs'deki değer ile immediate değeri topla ve rt'ye kaydet
+      const result = this.reg[this.rs] + this.imm;
+      this.reg[this.rt] = result;
+      
+      // Debug için kontrol çıktısı
+      console.log(`ADDI: $${this.rt} = $${this.rs}(${this.reg[this.rs]}) + ${this.imm} = ${result}`);
     } catch (error) {
       alert(`Error in addi: ${error.message}`);
     }
@@ -341,20 +462,44 @@ export class MIPS {
   }
  
 
-  j() {
+j() {
     try {
-      this.pc = this.target;
+        const parts = parser.parseInstruction(this.instr_asm);
+        const targetLabel = parts.label;
+        
+        if (!this.labelPositions.has(targetLabel)) {
+            throw new Error(`Label bulunamadı: ${targetLabel}`);
+        }
+        
+        // Label pozisyonuna göre PC'yi ayarla
+        const targetPosition = this.labelPositions.get(targetLabel);
+        this.pc = targetPosition * 4;
+        return true;
     } catch (error) {
-      alert(`Error in j: ${error.message}`);
+        alert(`j komutunda hata: ${error.message}`);
+        return false;
     }
-  }
+}
 
   jal() {
     try {
-      this.reg[31] = this.pc;
-      this.pc = this.target;
+        this.jrExecuted = false;  // jr bayrağını sıfırla
+        this.reg[31] = this.pc;
+        // Hedef etiketi bul
+        const parts = parser.parseInstruction(this.instr_asm);
+        const targetLabel = parts.label;
+        
+        if (!this.labelPositions.has(targetLabel)) {
+            throw new Error(`Label bulunamadı: ${targetLabel}`);
+        }
+        
+        // Label pozisyonuna göre PC'yi ayarla
+        const targetPosition = this.labelPositions.get(targetLabel);
+        this.pc = targetPosition * 4;
+        return true;
     } catch (error) {
-      alert(`Error in jal: ${error.message}`);
+        alert(`jal komutunda hata: ${error.message}`);
+        return false;
     }
   }
 
