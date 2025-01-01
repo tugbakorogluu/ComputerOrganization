@@ -23,6 +23,7 @@ export class MIPS {
     this.labels = new Map(); // Etiketleri ve konumlarını tutacak
     this.labelPositions = new Map(); // Yeni eklenen map
     this.skipNextInstruction = false; // beq için kontrol
+    this.jrExecuted = false;  // jr komutunun çalışıp çalışmadığını kontrol etmek için
   }
 
   // input: 32bit machine code array in binary format
@@ -341,13 +342,28 @@ export class MIPS {
 
   jr() {
     try {
-        // Word alignment kontrolü
-        if (this.reg[this.rs] % 4 !== 0) {
-            throw new Error("Adres word-aligned değil");
+        // Eğer jr daha önce çalıştıysa, normal akışa devam et
+        if (this.jrExecuted) {
+            return false;  // Normal akışa devam et
         }
-        this.pc = this.reg[this.rs];
+
+        // rs register'ındaki adrese atla
+        const jumpAddress = this.reg[this.rs];
+        
+        // Adresin 4'ün katı olduğundan emin ol
+        if (jumpAddress % 4 !== 0) {
+            throw new Error('Geçersiz atlama adresi: Adres 4\'ün katı olmalı');
+        }
+        
+        // jr komutunun çalıştığını işaretle
+        this.jrExecuted = true;
+        
+        // PC'yi güncelle (4 çıkarmadan)
+        this.pc = jumpAddress;
+        return true;
     } catch (error) {
-        alert(`Error in jr: ${error.message}`);
+        alert(`jr komutunda hata: ${error.message}`);
+        return false;
     }
   }
 
@@ -448,25 +464,17 @@ export class MIPS {
 
 j() {
     try {
-        // Label'ı bul
         const parts = parser.parseInstruction(this.instr_asm);
         const targetLabel = parts.label;
         
-        if (this.labels.has(targetLabel)) {
-            // Label'ın konumuna atla
-            const targetIndex = this.labels.get(targetLabel);
-            this.pc = targetIndex * 4;
-            return true;
-        } else {
-            // Tüm kodu baştan sona tara
-            for (let i = 0; i < this.IM_asm.length; i++) {
-                if (this.IM_asm[i].includes(targetLabel + ':')) {
-                    this.pc = i * 4;
-                    return true;
-                }
-            }
+        if (!this.labelPositions.has(targetLabel)) {
             throw new Error(`Label bulunamadı: ${targetLabel}`);
         }
+        
+        // Label pozisyonuna göre PC'yi ayarla
+        const targetPosition = this.labelPositions.get(targetLabel);
+        this.pc = targetPosition * 4;
+        return true;
     } catch (error) {
         alert(`j komutunda hata: ${error.message}`);
         return false;
@@ -475,13 +483,23 @@ j() {
 
   jal() {
     try {
-        // Dönüş adresini $ra'ya kaydet (bir sonraki komutun adresi)
+        this.jrExecuted = false;  // jr bayrağını sıfırla
         this.reg[31] = this.pc;
-        const targetAddress = this.target & 0x3FFFFFF;
-        // PC'nin üst 4 biti korunmalı ve hedef adres 2 bit sola kaydırılmalı
-        this.pc = ((this.pc & 0xF0000000) | (targetAddress << 2)) >>> 0;
+        // Hedef etiketi bul
+        const parts = parser.parseInstruction(this.instr_asm);
+        const targetLabel = parts.label;
+        
+        if (!this.labelPositions.has(targetLabel)) {
+            throw new Error(`Label bulunamadı: ${targetLabel}`);
+        }
+        
+        // Label pozisyonuna göre PC'yi ayarla
+        const targetPosition = this.labelPositions.get(targetLabel);
+        this.pc = targetPosition * 4;
+        return true;
     } catch (error) {
-        alert(`Error in jal: ${error.message}`);
+        alert(`jal komutunda hata: ${error.message}`);
+        return false;
     }
   }
 
