@@ -21,6 +21,7 @@ export class MIPS {
     this.imm = 0; // signed
     this.target = 0; // unsigned
     this.labels = new Map(); // Etiketleri ve konumlarını tutacak
+    this.labelPositions = new Map(); // Yeni eklenen map
     this.skipNextInstruction = false; // beq için kontrol
   }
 
@@ -29,16 +30,34 @@ export class MIPS {
     try {
       this.IM_len = binMachineCode.length;
       
-      // Etiketleri topla
-      assemblyCode.forEach((instruction, index) => {
-        if (instruction.includes(':')) {
-          const label = instruction.split(':')[0].trim();
-          this.labels.set(label, index);
+      // Önce assembly kodunu işle ve label pozisyonlarını belirle
+      let cleanedCode = [];
+      let currentIndex = 0;
+      
+      assemblyCode.forEach((line) => {
+        const labelMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*):(.*)$/);
+        if (labelMatch) {
+          const label = labelMatch[1].trim();
+          this.labels.set(label, currentIndex);
+          
+          // Label'dan sonraki komutu da ekle
+          const remainingInstruction = labelMatch[2].trim();
+          if (remainingInstruction) {
+            cleanedCode.push(remainingInstruction);
+            currentIndex++;
+          }
+        } else if (line.trim()) {
+          cleanedCode.push(line);
+          currentIndex++;
         }
       });
 
-      for (let i = 0; i < assemblyCode.length; i++) {
-        this.IM_asm[i] = assemblyCode[i];
+      // Label pozisyonlarını kaydet
+      this.collectLabels(assemblyCode);
+      
+      // Temizlenmiş kodları yerleştir
+      for (let i = 0; i < cleanedCode.length; i++) {
+        this.IM_asm[i] = cleanedCode[i];
       }
       for (let i = 0; i < binMachineCode.length; i++) {
         this.IM[i] = binMachineCode[i];
@@ -46,6 +65,30 @@ export class MIPS {
     } catch (error) {
       alert(`Error in setIM: ${error.message}`);
     }
+  }
+
+  // Yeni metod: Etiketleri toplama
+  collectLabels(assemblyCode) {
+    this.labels.clear();
+    this.labelPositions.clear();
+    
+    let currentPosition = 0;
+    assemblyCode.forEach((instruction) => {
+      // Label tanımını bul
+      const labelMatch = instruction.match(/^([a-zA-Z_][a-zA-Z0-9_]*):(.*)$/);
+      if (labelMatch) {
+        const label = labelMatch[1].trim();
+        this.labelPositions.set(label, currentPosition);
+        
+        // Eğer label'dan sonra komut varsa onu da işle
+        const remainingInstruction = labelMatch[2].trim();
+        if (remainingInstruction) {
+          currentPosition++;
+        }
+      } else if (instruction.trim()) {
+        currentPosition++;
+      }
+    });
   }
 
   // Fetch the next instruction from this.IM
@@ -151,10 +194,20 @@ export class MIPS {
       this.rs = parseInt(this.instr.slice(6, 11), 2);
       this.rt = parseInt(this.instr.slice(11, 16), 2);
       this.rd = parseInt(this.instr.slice(16, 21), 2);
-      this.shamt = parseInt(this.instr.slice(21, 26));
+      this.shamt = parseInt(this.instr.slice(21, 26), 2);
       this.funct = this.instr.slice(26, 32);
+
+      // Immediate değer için assembly kodunu parse et
       const parts = parser.parseInstruction(this.instr_asm);
-      this.imm = this.signedInt(parseInt(parts.immediate));
+      if (parts && parts.immediate) {
+        // Immediate değeri doğrudan parts.immediate'den al
+        this.imm = parseInt(parts.immediate);
+      } else {
+        // Eğer immediate değer binary'den geliyorsa
+        const immBinary = this.instr.slice(16, 32);
+        this.imm = this.signedInt(parseInt(immBinary, 2));
+      }
+      
       this.target = parseInt(this.instr.slice(6, 32), 2) * 4;
     } catch (error) {
       alert(`Error in parseMachineCode: ${error.message}`);
@@ -208,8 +261,7 @@ export class MIPS {
           this.sw();
           return false;
         case "000010":
-          this.j();
-          return false;
+          return this.j();
         case "000011":
           this.jal();
           return false;
@@ -289,9 +341,13 @@ export class MIPS {
 
   jr() {
     try {
-      this.pc = this.reg[this.rs] >>> 0; // unsigned
+        // Word alignment kontrolü
+        if (this.reg[this.rs] % 4 !== 0) {
+            throw new Error("Adres word-aligned değil");
+        }
+        this.pc = this.reg[this.rs];
     } catch (error) {
-      alert(`Error in jr: ${error.message}`);
+        alert(`Error in jr: ${error.message}`);
     }
   }
 
@@ -313,77 +369,56 @@ export class MIPS {
 
   beq() {
     try {
-      if (this.reg[this.rs] === this.reg[this.rt]) {
-        // Label'ı bul
-        const parts = parser.parseInstruction(this.instr_asm);
-        const targetLabel = parts.label;
-        
-        if (this.labels.has(targetLabel)) {
-          // Label'ın konumuna atla ve devam et
-          const targetIndex = this.labels.get(targetLabel);
-          this.pc = targetIndex * 4;
-          // PC'yi güncelle ama programı sonlandırma
-          return true; // Label'a atladığımızı belirt
-        } else {
-          throw new Error(`Label not found: ${targetLabel}`);
+        if (this.reg[this.rs] === this.reg[this.rt]) {
+            const parts = parser.parseInstruction(this.instr_asm);
+            const targetLabel = parts.label;
+            
+            if (!this.labelPositions.has(targetLabel)) {
+                throw new Error(`Label bulunamadı: ${targetLabel}`);
+            }
+            
+            // Label pozisyonuna göre PC'yi ayarla
+            const targetPosition = this.labelPositions.get(targetLabel);
+            this.pc = targetPosition * 4;
+            return true;
         }
-      }
-      return false; // Normal akışa devam et
+        return false;
     } catch (error) {
-      alert(`Error in beq: ${error.message}`);
-      return false;
+        alert(`beq komutunda hata: ${error.message}`);
+        return false;
     }
   }
-  
-
-// Yardımcı fonksiyon: Offset değerine karşılık gelen label'ı bul
-findLabelByOffset(offset) {
-    // Program içindeki tüm etiketleri ve konumlarını tutan bir harita
-    const labelMap = this.program.reduce((map, instruction, index) => {
-        if (instruction.label) {
-            map[instruction.label] = index;
-        }
-        return map;
-    }, {});
-    
-    // Offset değerine göre hedef etiketi bul
-    const targetIndex = (this.pc >>> 2) + offset;
-    
-    for (const [label, position] of Object.entries(labelMap)) {
-        if (position === targetIndex) {
-            return label;
-        }
-    }
-    
-    return null;
-}
 
   bne() {
     try {
         if (this.reg[this.rs] !== this.reg[this.rt]) {
-            // Label'ı bul
             const parts = parser.parseInstruction(this.instr_asm);
             const targetLabel = parts.label;
             
-            if (this.labels.has(targetLabel)) {
-                // Label'ın konumuna atla
-                const targetIndex = this.labels.get(targetLabel);
-                this.pc = targetIndex * 4;
-                return true; // Label'a atladığımızı belirt
-            } else {
-                throw new Error(`Label not found: ${targetLabel}`);
+            if (!this.labelPositions.has(targetLabel)) {
+                throw new Error(`Label bulunamadı: ${targetLabel}`);
             }
+            
+            // Label pozisyonuna göre PC'yi ayarla
+            const targetPosition = this.labelPositions.get(targetLabel);
+            this.pc = targetPosition * 4;
+            return true;
         }
-        return false; // Normal akışa devam et
+        return false;
     } catch (error) {
-        alert(`Error in bne: ${error.message}`);
+        alert(`bne komutunda hata: ${error.message}`);
         return false;
     }
   }
 
   addi() {
     try {
-      this.reg[this.rt] = this.reg[this.rs] + this.imm;
+      // rs'deki değer ile immediate değeri topla ve rt'ye kaydet
+      const result = this.reg[this.rs] + this.imm;
+      this.reg[this.rt] = result;
+      
+      // Debug için kontrol çıktısı
+      console.log(`ADDI: $${this.rt} = $${this.rs}(${this.reg[this.rs]}) + ${this.imm} = ${result}`);
     } catch (error) {
       alert(`Error in addi: ${error.message}`);
     }
@@ -411,20 +446,42 @@ findLabelByOffset(offset) {
   }
  
 
-  j() {
+j() {
     try {
-      this.pc = this.target;
+        // Label'ı bul
+        const parts = parser.parseInstruction(this.instr_asm);
+        const targetLabel = parts.label;
+        
+        if (this.labels.has(targetLabel)) {
+            // Label'ın konumuna atla
+            const targetIndex = this.labels.get(targetLabel);
+            this.pc = targetIndex * 4;
+            return true;
+        } else {
+            // Tüm kodu baştan sona tara
+            for (let i = 0; i < this.IM_asm.length; i++) {
+                if (this.IM_asm[i].includes(targetLabel + ':')) {
+                    this.pc = i * 4;
+                    return true;
+                }
+            }
+            throw new Error(`Label bulunamadı: ${targetLabel}`);
+        }
     } catch (error) {
-      alert(`Error in j: ${error.message}`);
+        alert(`j komutunda hata: ${error.message}`);
+        return false;
     }
-  }
+}
 
   jal() {
     try {
-      this.reg[31] = this.pc;
-      this.pc = this.target;
+        // Dönüş adresini $ra'ya kaydet (bir sonraki komutun adresi)
+        this.reg[31] = this.pc;
+        const targetAddress = this.target & 0x3FFFFFF;
+        // PC'nin üst 4 biti korunmalı ve hedef adres 2 bit sola kaydırılmalı
+        this.pc = ((this.pc & 0xF0000000) | (targetAddress << 2)) >>> 0;
     } catch (error) {
-      alert(`Error in jal: ${error.message}`);
+        alert(`Error in jal: ${error.message}`);
     }
   }
 

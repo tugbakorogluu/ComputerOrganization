@@ -109,16 +109,16 @@ function parseItype(instruction) {
   }
 // Function to parse J-type instructions
 function parseJtype(instruction) {
-    // Regular expression for J-type instructions
-    const jTypeRegex = /^(\w+)\s+(\d+|0x[\da-fA-F]+|0b[01]+)$/i;
-
+    const jTypeRegex = /^(j|jal)\s+(\w+)$/i;
     const jTypeMatches = instruction.match(jTypeRegex);
-  // Parse the instruction if a match is found
+
     if (jTypeMatches) {
-      const [_, opcode, target] = jTypeMatches;
-      return { category: "Jump", opcode, target: target };
-    } else {
-      return null;
+        const [_, opcode, label] = jTypeMatches;
+        return { 
+            category: "Jump", 
+            opcode, 
+            label: label.trim() 
+        };
     }
-  
-  }
+    return null;
+}
